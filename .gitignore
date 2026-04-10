@@ -1,0 +1,23 @@
+# Build outputs
+*.exe
+*.o
+*.obj
+obj/
+
+# Logs and debug output
+*.log
+out.txt
+debug_out.txt
+debug_output.log
+debug_phase2.log
+debug_render.log
+layout_debug.log
+stderr.log
+
+# Archives
+*.zip
+*.tar.gz
+
+# IDE / Tool files
+.vs/
+*.user
