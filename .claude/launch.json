@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "browser-engine",
+      "runtimeExecutable": "./BrowserEngine.exe",
+      "runtimeArgs": ["https://www.google.com"],
+      "port": 0
+    }
+  ]
+}

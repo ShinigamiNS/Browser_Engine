@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Phase 2 - Table Layout &amp; Float Tests</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+  h1 { text-align: center; margin-bottom: 20px; color: #333; }
+  h2 { background: #333; color: #fff; padding: 8px 16px; margin: 20px 0 10px 0; font-size: 16px; }
+  .test-row { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .test-box { background: #fff; border: 1px solid #ccc; padding: 12px; flex: 1; min-width: 280px; }
+  .label { font-size: 11px; color: #888; margin-bottom: 6px; }
+  .expect { font-size: 11px; color: #555; margin-top: 6px; font-style: italic; }
+
+  /* ============================================================
+     2.1 — TABLE LAYOUT
+     ============================================================ */
+  .basic-table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .basic-table td, .basic-table th {
+    border: 1px solid #999;
+    padding: 6px 10px;
+  }
+  .basic-table th {
+    background: #e0e0e0;
+  }
+
+  .separate-table {
+    border-collapse: separate;
+    border-spacing: 4px;
+    width: 100%;
+  }
+  .separate-table td, .separate-table th {
+    border: 1px solid #999;
+    padding: 6px 10px;
+    background: #fafafa;
+  }
+  .separate-table th {
+    background: #dde;
+  }
+
+  .styled-table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .styled-table td, .styled-table th {
+    border: 1px solid #666;
+    padding: 8px 12px;
+  }
+  .styled-table th {
+    background: #336;
+    color: #fff;
+  }
+  .styled-table tr:nth-child(even) {
+    background: #eef;
+  }
+
+  /* ============================================================
+     2.2 — FLOAT LAYOUT
+     ============================================================ */
+  .float-container {
+    background: #e8e8e8;
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  .float-left {
+    float: left;
+    background: #4a4;
+    color: #fff;
+    padding: 8px 12px;
+    margin: 0 12px 8px 0;
+  }
+  .float-right {
+    float: right;
+    background: #44a;
+    color: #fff;
+    padding: 8px 12px;
+    margin: 0 0 8px 12px;
+  }
+  .clearfix::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+</style>
+</head>
+<body>
+
+<h1>Phase 2 Feature Tests</h1>
+
+<!-- ============================================================ -->
+<h2>2.1 — Basic Table (border-collapse: collapse)</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Simple 3-column table with header</div>
+    <table class="basic-table">
+      <thead>
+        <tr><th>Name</th><th>Age</th><th>City</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Alice</td><td>30</td><td>New York</td></tr>
+        <tr><td>Bob</td><td>25</td><td>San Francisco</td></tr>
+        <tr><td>Charlie</td><td>35</td><td>London</td></tr>
+      </tbody>
+    </table>
+    <div class="expect">Expected: Columns aligned, borders collapsed, th bold+centered</div>
+  </div>
+</div>
+
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Table with colspan and rowspan</div>
+    <table class="basic-table">
+      <tr><th>Header 1</th><th colspan="2">Header 2-3 (colspan=2)</th></tr>
+      <tr><td rowspan="2">Rowspan=2</td><td>Cell B1</td><td>Cell C1</td></tr>
+      <tr><td>Cell B2</td><td>Cell C2</td></tr>
+      <tr><td>Normal</td><td>Normal</td><td>Normal</td></tr>
+    </table>
+    <div class="expect">Expected: Header spans 2 cols, first cell spans 2 rows</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.1 — Table (border-collapse: separate)</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Separate borders with spacing</div>
+    <table class="separate-table">
+      <tr><th>Product</th><th>Price</th><th>Stock</th></tr>
+      <tr><td>Widget A</td><td>$12.99</td><td>142</td></tr>
+      <tr><td>Widget B</td><td>$24.50</td><td>87</td></tr>
+      <tr><td>Widget C</td><td>$8.00</td><td>305</td></tr>
+    </table>
+    <div class="expect">Expected: Visible gap between cells (border-spacing: 4px)</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.1 — Styled Table with nth-child</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Zebra-striped table</div>
+    <table class="styled-table">
+      <tr><th>Day</th><th>Temperature</th><th>Condition</th></tr>
+      <tr><td>Monday</td><td>72F</td><td>Sunny</td></tr>
+      <tr><td>Tuesday</td><td>68F</td><td>Cloudy</td></tr>
+      <tr><td>Wednesday</td><td>74F</td><td>Sunny</td></tr>
+      <tr><td>Thursday</td><td>65F</td><td>Rain</td></tr>
+      <tr><td>Friday</td><td>70F</td><td>Partly Cloudy</td></tr>
+    </table>
+    <div class="expect">Expected: Dark blue headers, alternating light blue rows</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.1 — Edge Cases: Empty Cells, Single Cell, Wide Content</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Empty cells</div>
+    <table class="basic-table">
+      <tr><td>A</td><td></td><td>C</td></tr>
+      <tr><td></td><td>B</td><td></td></tr>
+    </table>
+    <div class="expect">Expected: Empty cells still occupy space, grid aligned</div>
+  </div>
+  <div class="test-box">
+    <div class="label">Single cell table</div>
+    <table class="basic-table">
+      <tr><td>Only cell</td></tr>
+    </table>
+    <div class="expect">Expected: Single cell fills table width</div>
+  </div>
+  <div class="test-box">
+    <div class="label">Cell with long content</div>
+    <table class="basic-table" style="width: 300px;">
+      <tr><td>Short</td><td>This cell has very long content that should cause the column to expand or wrap within the fixed table width</td></tr>
+    </table>
+    <div class="expect">Expected: Long content wraps, column widths adjust</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.1 — Nested Table</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Table inside a table cell</div>
+    <table class="basic-table">
+      <tr>
+        <td>Outer cell 1</td>
+        <td>
+          <table class="basic-table" style="width:100%;">
+            <tr><td>Inner A</td><td>Inner B</td></tr>
+            <tr><td>Inner C</td><td>Inner D</td></tr>
+          </table>
+        </td>
+      </tr>
+      <tr><td>Outer cell 3</td><td>Outer cell 4</td></tr>
+    </table>
+    <div class="expect">Expected: Inner table renders correctly inside outer cell</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.1 — Table with vertical-align</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Vertical alignment in cells</div>
+    <table class="basic-table">
+      <tr style="height: 80px;">
+        <td style="vertical-align: top;">Top aligned</td>
+        <td style="vertical-align: middle;">Middle aligned (default)</td>
+        <td style="vertical-align: bottom;">Bottom aligned</td>
+        <td>This cell has<br>much more<br>content to<br>make the<br>row tall</td>
+      </tr>
+    </table>
+    <div class="expect">Expected: First cell at top, second centered, third at bottom</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.1 — Table with Caption</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Table caption above</div>
+    <table class="basic-table">
+      <caption style="padding: 8px; font-weight: bold; font-size: 14px;">Table Caption: Sales Data</caption>
+      <tr><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr>
+      <tr><td>$100k</td><td>$120k</td><td>$95k</td><td>$150k</td></tr>
+    </table>
+    <div class="expect">Expected: Caption centered above the table</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.1 — Table with explicit column widths</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Fixed column widths</div>
+    <table class="basic-table" style="width: 400px;">
+      <tr>
+        <td style="width: 100px;">100px</td>
+        <td style="width: 200px;">200px</td>
+        <td>Auto</td>
+      </tr>
+      <tr>
+        <td>Row 2, Col 1</td>
+        <td>Row 2, Col 2</td>
+        <td>Row 2, Col 3</td>
+      </tr>
+    </table>
+    <div class="expect">Expected: First col 100px, second 200px, third fills remaining</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.2 — Float: Left</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Image-like float left with text wrapping</div>
+    <div class="float-container clearfix">
+      <div class="float-left" style="width: 80px; height: 80px;">Float L</div>
+      <p>This text should wrap around the floated element on the left side. The text flows to the right of the float and then continues below it when the float ends. This demonstrates basic float behavior similar to an image with text wrapping around it in a newspaper-style layout.</p>
+    </div>
+    <div class="expect">Expected: Green box floated left, text wraps around it</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.2 — Float: Right</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Float right with text wrapping</div>
+    <div class="float-container clearfix">
+      <div class="float-right" style="width: 80px; height: 80px;">Float R</div>
+      <p>This text should wrap around the floated element on the right side. The float is positioned to the right edge and text flows to its left. When the text content extends past the bottom of the float, it fills the full width of the container again.</p>
+    </div>
+    <div class="expect">Expected: Blue box floated right, text wraps left of it</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.2 — Multiple Floats</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Left and right floats together</div>
+    <div class="float-container clearfix">
+      <div class="float-left" style="width: 60px; height: 60px;">L1</div>
+      <div class="float-right" style="width: 60px; height: 60px;">R1</div>
+      <p>Text flows between the left and right floats. This area is narrower because both sides are occupied by floated elements. The text should appear in the gap between the two floats.</p>
+    </div>
+    <div class="expect">Expected: Text squeezed between left and right floats</div>
+  </div>
+</div>
+
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Multiple left floats stacking horizontally</div>
+    <div class="float-container clearfix">
+      <div class="float-left" style="width: 60px; height: 40px;">L1</div>
+      <div class="float-left" style="width: 60px; height: 40px;">L2</div>
+      <div class="float-left" style="width: 60px; height: 40px;">L3</div>
+      <p style="margin: 0;">Text after three left floats. The floats should stack horizontally from left to right.</p>
+    </div>
+    <div class="expect">Expected: Three green boxes side by side, text to the right or below</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.2 — Clear</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">clear: both</div>
+    <div class="float-container">
+      <div class="float-left" style="width: 80px; height: 60px;">Float</div>
+      <p>Text beside the float.</p>
+      <div style="clear: both; background: #fdd; padding: 4px;">This div has clear:both — it should appear BELOW the float, not beside it.</div>
+    </div>
+    <div class="expect">Expected: Red box below the green float, not beside it</div>
+  </div>
+  <div class="test-box">
+    <div class="label">clear: left only</div>
+    <div class="float-container">
+      <div class="float-left" style="width: 60px; height: 60px;">L</div>
+      <div class="float-right" style="width: 60px; height: 60px;">R</div>
+      <div style="clear: left; background: #fdd; padding: 4px;">clear:left — below left float but may overlap right float</div>
+    </div>
+    <div class="expect">Expected: Red box below left float</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.2 — Float with overflow:hidden (BFC)</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Container with overflow:hidden contains floats</div>
+    <div style="overflow: hidden; background: #e8e8e8; padding: 8px; border: 2px solid #333;">
+      <div class="float-left" style="width: 80px; height: 120px;">Tall Float</div>
+      <p>Short text next to float.</p>
+    </div>
+    <div style="background: #fdd; padding: 4px;">This should be BELOW the container, not overlapping the float.</div>
+    <div class="expect">Expected: Grey container expands to contain the tall float</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>2.2 — Float Edge Cases</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box">
+    <div class="label">Float wider than remaining space</div>
+    <div class="float-container clearfix" style="width: 200px;">
+      <div class="float-left" style="width: 120px; height: 40px;">120px float</div>
+      <div class="float-left" style="width: 120px; height: 40px;">Second 120px</div>
+      <p style="margin:0;">Text after two wide floats in narrow container.</p>
+    </div>
+    <div class="expect">Expected: Second float drops below first (doesn't fit beside)</div>
+  </div>
+  <div class="test-box">
+    <div class="label">Float respects parent padding</div>
+    <div style="padding: 20px; background: #e8e8e8; overflow: hidden;">
+      <div class="float-left" style="width: 60px; height: 40px;">Float</div>
+      <p>Float should be inside the 20px padding area, not at the edge.</p>
+    </div>
+    <div class="expect">Expected: Float positioned inside padding, not at edge</div>
+  </div>
+</div>
+
+<div style="height: 40px;"></div>
+<div style="text-align: center; color: #888; font-size: 12px;">End of Phase 2 Tests</div>
+<div style="height: 20px;"></div>
+
+</body>
+</html>

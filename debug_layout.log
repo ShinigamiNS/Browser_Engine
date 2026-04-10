@@ -1,0 +1,859 @@
+[LAYOUT] layout() called — engine is running
+[BLOCK-BESIDE-FLOAT] tag=body x=0 w=1440 (container w=1440, float_bounds=[0,1440])
+[BLOCK-BESIDE-FLOAT] tag=h1 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=73 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=164 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[TABLE] after distribute:
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[TABLE] after distribute:
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=571 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=662 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=264 container_w=280 spacing=4
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 88
+[TABLE]   col[1] = 88
+[TABLE]   col[2] = 88
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=1328 avail=1312 container_w=1328 spacing=4
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[TABLE] after distribute:
+[TABLE]   col[0] = 437
+[TABLE]   col[1] = 437
+[TABLE]   col[2] = 437
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=896 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=987 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[TABLE] after distribute:
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1295 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1386 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 1 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 280
+[TABLE] after distribute:
+[TABLE]   col[0] = 280
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 2 cols, total_col_w=300 avail=300 container_w=300 spacing=0
+[TABLE]   col[0] = 150
+[TABLE]   col[1] = 150
+[TABLE] after distribute:
+[TABLE]   col[0] = 150
+[TABLE]   col[1] = 150
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=405 (container w=405, float_bounds=[40,445])
+[TABLE] 3 cols, total_col_w=405 avail=405 container_w=405 spacing=0
+[TABLE]   col[0] = 135
+[TABLE]   col[1] = 135
+[TABLE]   col[2] = 135
+[TABLE] after distribute:
+[TABLE]   col[0] = 135
+[TABLE]   col[1] = 135
+[TABLE]   col[2] = 135
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=405 (container w=405, float_bounds=[40,445])
+[TABLE] 1 cols, total_col_w=405 avail=405 container_w=405 spacing=0
+[TABLE]   col[0] = 405
+[TABLE] after distribute:
+[TABLE]   col[0] = 405
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=405 (container w=405, float_bounds=[40,445])
+[TABLE] 2 cols, total_col_w=300 avail=300 container_w=300 spacing=0
+[TABLE]   col[0] = 150
+[TABLE]   col[1] = 150
+[TABLE] after distribute:
+[TABLE]   col[0] = 150
+[TABLE]   col[1] = 150
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1609 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1700 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=10 w=260 (container w=260, float_bounds=[10,270])
+[TABLE] 2 cols, total_col_w=260 avail=260 container_w=260 spacing=0
+[TABLE]   col[0] = 130
+[TABLE]   col[1] = 130
+[TABLE] after distribute:
+[TABLE]   col[0] = 130
+[TABLE]   col[1] = 130
+[TABLE] 2 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 140
+[TABLE]   col[1] = 140
+[TABLE] after distribute:
+[TABLE]   col[0] = 140
+[TABLE]   col[1] = 140
+[BLOCK-BESIDE-FLOAT] tag=table x=190 w=120 (container w=120, float_bounds=[190,310])
+[TABLE] 2 cols, total_col_w=120 avail=120 container_w=120 spacing=0
+[TABLE]   col[0] = 60
+[TABLE]   col[1] = 60
+[TABLE] after distribute:
+[TABLE]   col[0] = 60
+[TABLE]   col[1] = 60
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=10 w=1308 (container w=1308, float_bounds=[10,1318])
+[TABLE] 2 cols, total_col_w=1308 avail=1308 container_w=1308 spacing=0
+[TABLE]   col[0] = 654
+[TABLE]   col[1] = 654
+[TABLE] after distribute:
+[TABLE]   col[0] = 654
+[TABLE]   col[1] = 654
+[TABLE] 2 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 664
+[TABLE]   col[1] = 664
+[TABLE] after distribute:
+[TABLE]   col[0] = 664
+[TABLE]   col[1] = 664
+[BLOCK-BESIDE-FLOAT] tag=table x=714 w=644 (container w=644, float_bounds=[714,1358])
+[TABLE] 2 cols, total_col_w=644 avail=644 container_w=644 spacing=0
+[TABLE]   col[0] = 322
+[TABLE]   col[1] = 322
+[TABLE] after distribute:
+[TABLE]   col[0] = 322
+[TABLE]   col[1] = 322
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1892 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1983 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 4 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 70
+[TABLE]   col[1] = 70
+[TABLE]   col[2] = 70
+[TABLE]   col[3] = 70
+[TABLE] after distribute:
+[TABLE]   col[0] = 70
+[TABLE]   col[1] = 70
+[TABLE]   col[2] = 70
+[TABLE]   col[3] = 70
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 4 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 332
+[TABLE]   col[1] = 332
+[TABLE]   col[2] = 332
+[TABLE]   col[3] = 332
+[TABLE] after distribute:
+[TABLE]   col[0] = 332
+[TABLE]   col[1] = 332
+[TABLE]   col[2] = 332
+[TABLE]   col[3] = 332
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2184 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2275 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 4 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 70
+[TABLE]   col[1] = 70
+[TABLE]   col[2] = 70
+[TABLE]   col[3] = 70
+[TABLE] after distribute:
+[TABLE]   col[0] = 70
+[TABLE]   col[1] = 70
+[TABLE]   col[2] = 70
+[TABLE]   col[3] = 70
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 4 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 332
+[TABLE]   col[1] = 332
+[TABLE]   col[2] = 332
+[TABLE]   col[3] = 332
+[TABLE] after distribute:
+[TABLE]   col[0] = 332
+[TABLE]   col[1] = 332
+[TABLE]   col[2] = 332
+[TABLE]   col[3] = 332
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2457 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2548 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=467 avail=400 container_w=400 spacing=0
+[TABLE]   col[0] = 133
+[TABLE]   col[1] = 200
+[TABLE]   col[2] = 133
+[TABLE] after distribute:
+[TABLE]   col[0] = 114
+[TABLE]   col[1] = 171
+[TABLE]   col[2] = 114
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=467 avail=400 container_w=400 spacing=0
+[TABLE]   col[0] = 133
+[TABLE]   col[1] = 200
+[TABLE]   col[2] = 133
+[TABLE] after distribute:
+[TABLE]   col[0] = 114
+[TABLE]   col[1] = 171
+[TABLE]   col[2] = 114
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2694 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2784 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=2842 w=92 h=104 | container=264 avail=264
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=172 (container w=264, float_bounds=[140,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] left float placed: x=48 y=2842 w=92 h=104 | container=1312 avail=1312
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=1220 (container w=1312, float_bounds=[140,1360])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2982 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3072 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] right float placed: x=232 y=3130 w=92 h=104 | container=264 avail=264
+[BLOCK-BESIDE-FLOAT] tag=p x=48 w=172 (container w=264, float_bounds=[48,220])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] right float placed: x=1280 y=3130 w=92 h=104 | container=1312 avail=1312
+[BLOCK-BESIDE-FLOAT] tag=p x=48 w=1220 (container w=1312, float_bounds=[48,1268])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3270 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3360 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=3418 w=72 h=84 | container=264 avail=264
+[FLOAT] right float placed: x=252 y=3418 w=72 h=84 | container=264 avail=192
+[BLOCK-BESIDE-FLOAT] tag=p x=120 w=120 (container w=264, float_bounds=[120,240])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] left float placed: x=48 y=3418 w=72 h=84 | container=1312 avail=1312
+[FLOAT] right float placed: x=1300 y=3418 w=72 h=84 | container=1312 avail=1240
+[BLOCK-BESIDE-FLOAT] tag=p x=120 w=1168 (container w=1312, float_bounds=[120,1288])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=3573 w=72 h=64 | container=264 avail=264
+[FLOAT] left float placed: x=120 y=3573 w=72 h=64 | container=264 avail=192
+[FLOAT] left float placed: x=192 y=3573 w=72 h=64 | container=264 avail=120
+[BLOCK-BESIDE-FLOAT] tag=p x=264 w=48 (container w=264, float_bounds=[264,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] left float placed: x=48 y=3573 w=72 h=64 | container=1312 avail=1312
+[FLOAT] left float placed: x=120 y=3573 w=72 h=64 | container=1312 avail=1240
+[FLOAT] left float placed: x=192 y=3573 w=72 h=64 | container=1312 avail=1168
+[BLOCK-BESIDE-FLOAT] tag=p x=264 w=1096 (container w=1312, float_bounds=[264,1360])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3672 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3763 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=3821 w=92 h=84 | container=264 avail=264
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=172 (container w=264, float_bounds=[140,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=48 w=264 (container w=264, float_bounds=[48,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=3821 w=72 h=84 | container=264 avail=264
+[FLOAT] right float placed: x=252 y=3821 w=72 h=84 | container=264 avail=192
+[BLOCK-BESIDE-FLOAT] tag=div x=48 w=264 (container w=264, float_bounds=[48,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLOAT] left float placed: x=48 y=3821 w=92 h=84 | container=620 avail=620
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=528 (container w=620, float_bounds=[140,668])
+[BLOCK-BESIDE-FLOAT] tag=div x=48 w=620 (container w=620, float_bounds=[48,668])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLOAT] left float placed: x=48 y=3821 w=72 h=84 | container=620 avail=620
+[FLOAT] right float placed: x=608 y=3821 w=72 h=84 | container=620 avail=548
+[BLOCK-BESIDE-FLOAT] tag=div x=48 w=620 (container w=620, float_bounds=[48,668])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3971 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=4062 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=4119 w=92 h=144 | container=264 avail=264
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=172 (container w=264, float_bounds=[140,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] left float placed: x=48 y=4119 w=92 h=144 | container=1312 avail=1312
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=1220 (container w=1312, float_bounds=[140,1360])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=4329 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=4420 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=4478 w=132 h=64 | container=184 avail=184
+[FLOAT] left float placed: x=48 y=4542 w=132 h=64 | container=184 avail=52
+[BLOCK-BESIDE-FLOAT] tag=p x=180 w=52 (container w=184, float_bounds=[180,232])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=60 y=4490 w=72 h=64 | container=240 avail=240
+[BLOCK-BESIDE-FLOAT] tag=p x=132 w=168 (container w=240, float_bounds=[132,300])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLOAT] left float placed: x=48 y=4478 w=132 h=64 | container=184 avail=184
+[FLOAT] left float placed: x=48 y=4542 w=132 h=64 | container=184 avail=52
+[BLOCK-BESIDE-FLOAT] tag=p x=180 w=52 (container w=184, float_bounds=[180,232])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLOAT] left float placed: x=60 y=4490 w=72 h=64 | container=596 avail=596
+[BLOCK-BESIDE-FLOAT] tag=p x=132 w=524 (container w=596, float_bounds=[132,656])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=body x=0 w=1440 (container w=1440, float_bounds=[0,1440])
+[BLOCK-BESIDE-FLOAT] tag=h1 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=73 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=164 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[TABLE] after distribute:
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[TABLE] after distribute:
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=571 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=662 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=264 container_w=280 spacing=4
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 88
+[TABLE]   col[1] = 88
+[TABLE]   col[2] = 88
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=1328 avail=1312 container_w=1328 spacing=4
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[TABLE] after distribute:
+[TABLE]   col[0] = 437
+[TABLE]   col[1] = 437
+[TABLE]   col[2] = 437
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=896 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=987 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[TABLE] after distribute:
+[TABLE]   col[0] = 443
+[TABLE]   col[1] = 443
+[TABLE]   col[2] = 443
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1295 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1386 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[TABLE] after distribute:
+[TABLE]   col[0] = 93
+[TABLE]   col[1] = 93
+[TABLE]   col[2] = 93
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 1 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 280
+[TABLE] after distribute:
+[TABLE]   col[0] = 280
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 2 cols, total_col_w=300 avail=300 container_w=300 spacing=0
+[TABLE]   col[0] = 150
+[TABLE]   col[1] = 150
+[TABLE] after distribute:
+[TABLE]   col[0] = 150
+[TABLE]   col[1] = 150
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=405 (container w=405, float_bounds=[40,445])
+[TABLE] 3 cols, total_col_w=405 avail=405 container_w=405 spacing=0
+[TABLE]   col[0] = 135
+[TABLE]   col[1] = 135
+[TABLE]   col[2] = 135
+[TABLE] after distribute:
+[TABLE]   col[0] = 135
+[TABLE]   col[1] = 135
+[TABLE]   col[2] = 135
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=405 (container w=405, float_bounds=[40,445])
+[TABLE] 1 cols, total_col_w=405 avail=405 container_w=405 spacing=0
+[TABLE]   col[0] = 405
+[TABLE] after distribute:
+[TABLE]   col[0] = 405
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=405 (container w=405, float_bounds=[40,445])
+[TABLE] 2 cols, total_col_w=300 avail=300 container_w=300 spacing=0
+[TABLE]   col[0] = 150
+[TABLE]   col[1] = 150
+[TABLE] after distribute:
+[TABLE]   col[0] = 150
+[TABLE]   col[1] = 150
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=405 (container w=405, float_bounds=[40,445])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1609 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1700 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=10 w=260 (container w=260, float_bounds=[10,270])
+[TABLE] 2 cols, total_col_w=260 avail=260 container_w=260 spacing=0
+[TABLE]   col[0] = 130
+[TABLE]   col[1] = 130
+[TABLE] after distribute:
+[TABLE]   col[0] = 130
+[TABLE]   col[1] = 130
+[TABLE] 2 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 140
+[TABLE]   col[1] = 140
+[TABLE] after distribute:
+[TABLE]   col[0] = 140
+[TABLE]   col[1] = 140
+[BLOCK-BESIDE-FLOAT] tag=table x=190 w=120 (container w=120, float_bounds=[190,310])
+[TABLE] 2 cols, total_col_w=120 avail=120 container_w=120 spacing=0
+[TABLE]   col[0] = 60
+[TABLE]   col[1] = 60
+[TABLE] after distribute:
+[TABLE]   col[0] = 60
+[TABLE]   col[1] = 60
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=10 w=1308 (container w=1308, float_bounds=[10,1318])
+[TABLE] 2 cols, total_col_w=1308 avail=1308 container_w=1308 spacing=0
+[TABLE]   col[0] = 654
+[TABLE]   col[1] = 654
+[TABLE] after distribute:
+[TABLE]   col[0] = 654
+[TABLE]   col[1] = 654
+[TABLE] 2 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 664
+[TABLE]   col[1] = 664
+[TABLE] after distribute:
+[TABLE]   col[0] = 664
+[TABLE]   col[1] = 664
+[BLOCK-BESIDE-FLOAT] tag=table x=714 w=644 (container w=644, float_bounds=[714,1358])
+[TABLE] 2 cols, total_col_w=644 avail=644 container_w=644 spacing=0
+[TABLE]   col[0] = 322
+[TABLE]   col[1] = 322
+[TABLE] after distribute:
+[TABLE]   col[0] = 322
+[TABLE]   col[1] = 322
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1892 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=1983 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 4 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 70
+[TABLE]   col[1] = 70
+[TABLE]   col[2] = 70
+[TABLE]   col[3] = 70
+[TABLE] after distribute:
+[TABLE]   col[0] = 70
+[TABLE]   col[1] = 70
+[TABLE]   col[2] = 70
+[TABLE]   col[3] = 70
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 4 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 332
+[TABLE]   col[1] = 332
+[TABLE]   col[2] = 332
+[TABLE]   col[3] = 332
+[TABLE] after distribute:
+[TABLE]   col[0] = 332
+[TABLE]   col[1] = 332
+[TABLE]   col[2] = 332
+[TABLE]   col[3] = 332
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2184 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2275 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 4 cols, total_col_w=280 avail=280 container_w=280 spacing=0
+[TABLE]   col[0] = 70
+[TABLE]   col[1] = 70
+[TABLE]   col[2] = 70
+[TABLE]   col[3] = 70
+[TABLE] after distribute:
+[TABLE]   col[0] = 70
+[TABLE]   col[1] = 70
+[TABLE]   col[2] = 70
+[TABLE]   col[3] = 70
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 4 cols, total_col_w=1328 avail=1328 container_w=1328 spacing=0
+[TABLE]   col[0] = 332
+[TABLE]   col[1] = 332
+[TABLE]   col[2] = 332
+[TABLE]   col[3] = 332
+[TABLE] after distribute:
+[TABLE]   col[0] = 332
+[TABLE]   col[1] = 332
+[TABLE]   col[2] = 332
+[TABLE]   col[3] = 332
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2457 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2548 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=280 (container w=280, float_bounds=[40,320])
+[TABLE] 3 cols, total_col_w=467 avail=400 container_w=400 spacing=0
+[TABLE]   col[0] = 133
+[TABLE]   col[1] = 200
+[TABLE]   col[2] = 133
+[TABLE] after distribute:
+[TABLE]   col[0] = 114
+[TABLE]   col[1] = 171
+[TABLE]   col[2] = 114
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=table x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[TABLE] 3 cols, total_col_w=467 avail=400 container_w=400 spacing=0
+[TABLE]   col[0] = 133
+[TABLE]   col[1] = 200
+[TABLE]   col[2] = 133
+[TABLE] after distribute:
+[TABLE]   col[0] = 114
+[TABLE]   col[1] = 171
+[TABLE]   col[2] = 114
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2694 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2784 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=2842 w=92 h=104 | container=264 avail=264
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=172 (container w=264, float_bounds=[140,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] left float placed: x=48 y=2842 w=92 h=104 | container=1312 avail=1312
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=1220 (container w=1312, float_bounds=[140,1360])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=2982 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3072 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] right float placed: x=232 y=3130 w=92 h=104 | container=264 avail=264
+[BLOCK-BESIDE-FLOAT] tag=p x=48 w=172 (container w=264, float_bounds=[48,220])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] right float placed: x=1280 y=3130 w=92 h=104 | container=1312 avail=1312
+[BLOCK-BESIDE-FLOAT] tag=p x=48 w=1220 (container w=1312, float_bounds=[48,1268])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3270 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3360 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=3418 w=72 h=84 | container=264 avail=264
+[FLOAT] right float placed: x=252 y=3418 w=72 h=84 | container=264 avail=192
+[BLOCK-BESIDE-FLOAT] tag=p x=120 w=120 (container w=264, float_bounds=[120,240])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] left float placed: x=48 y=3418 w=72 h=84 | container=1312 avail=1312
+[FLOAT] right float placed: x=1300 y=3418 w=72 h=84 | container=1312 avail=1240
+[BLOCK-BESIDE-FLOAT] tag=p x=120 w=1168 (container w=1312, float_bounds=[120,1288])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=3573 w=72 h=64 | container=264 avail=264
+[FLOAT] left float placed: x=120 y=3573 w=72 h=64 | container=264 avail=192
+[FLOAT] left float placed: x=192 y=3573 w=72 h=64 | container=264 avail=120
+[BLOCK-BESIDE-FLOAT] tag=p x=264 w=48 (container w=264, float_bounds=[264,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] left float placed: x=48 y=3573 w=72 h=64 | container=1312 avail=1312
+[FLOAT] left float placed: x=120 y=3573 w=72 h=64 | container=1312 avail=1240
+[FLOAT] left float placed: x=192 y=3573 w=72 h=64 | container=1312 avail=1168
+[BLOCK-BESIDE-FLOAT] tag=p x=264 w=1096 (container w=1312, float_bounds=[264,1360])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3672 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3763 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=3821 w=92 h=84 | container=264 avail=264
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=172 (container w=264, float_bounds=[140,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=48 w=264 (container w=264, float_bounds=[48,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=3821 w=72 h=84 | container=264 avail=264
+[FLOAT] right float placed: x=252 y=3821 w=72 h=84 | container=264 avail=192
+[BLOCK-BESIDE-FLOAT] tag=div x=48 w=264 (container w=264, float_bounds=[48,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLOAT] left float placed: x=48 y=3821 w=92 h=84 | container=620 avail=620
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=528 (container w=620, float_bounds=[140,668])
+[BLOCK-BESIDE-FLOAT] tag=div x=48 w=620 (container w=620, float_bounds=[48,668])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLOAT] left float placed: x=48 y=3821 w=72 h=84 | container=620 avail=620
+[FLOAT] right float placed: x=608 y=3821 w=72 h=84 | container=620 avail=548
+[BLOCK-BESIDE-FLOAT] tag=div x=48 w=620 (container w=620, float_bounds=[48,668])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=3971 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=4062 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=4119 w=92 h=144 | container=264 avail=264
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=172 (container w=264, float_bounds=[140,312])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLOAT] left float placed: x=48 y=4119 w=92 h=144 | container=1312 avail=1312
+[BLOCK-BESIDE-FLOAT] tag=p x=140 w=1220 (container w=1312, float_bounds=[140,1360])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=1328 (container w=1328, float_bounds=[40,1368])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=4329 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=h2 x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[FLUSH-INLINE] 2 items, float_bounds=[28,1412] at y=4420 (container x=28 w=1384) floats=0
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=48 y=4478 w=132 h=64 | container=184 avail=184
+[FLOAT] left float placed: x=48 y=4542 w=132 h=64 | container=184 avail=52
+[BLOCK-BESIDE-FLOAT] tag=p x=180 w=52 (container w=184, float_bounds=[180,232])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[FLOAT] left float placed: x=60 y=4490 w=72 h=64 | container=240 avail=240
+[BLOCK-BESIDE-FLOAT] tag=p x=132 w=168 (container w=240, float_bounds=[132,300])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=280 (container w=280, float_bounds=[40,320])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLOAT] left float placed: x=48 y=4478 w=132 h=64 | container=184 avail=184
+[FLOAT] left float placed: x=48 y=4542 w=132 h=64 | container=184 avail=52
+[BLOCK-BESIDE-FLOAT] tag=p x=180 w=52 (container w=184, float_bounds=[180,232])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[FLOAT] left float placed: x=60 y=4490 w=72 h=64 | container=596 avail=596
+[BLOCK-BESIDE-FLOAT] tag=p x=132 w=524 (container w=596, float_bounds=[132,656])
+[BLOCK-BESIDE-FLOAT] tag=div x=40 w=636 (container w=636, float_bounds=[40,676])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])
+[BLOCK-BESIDE-FLOAT] tag=div x=28 w=1384 (container w=1384, float_bounds=[28,1412])

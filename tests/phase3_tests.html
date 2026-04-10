@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head><title>Phase 3 Tests - Browser Features</title></head>
+<body style="font-family: Arial; margin: 20px;">
+
+<h1>Phase 3: Browser Feature Tests</h1>
+
+<h2>Text Selection Test</h2>
+<p>Click and drag to select this text. Then press Ctrl+C to copy it to the clipboard.</p>
+<p>Try selecting across multiple paragraphs. The selection should highlight in blue.</p>
+
+<h2>Find in Page (Ctrl+F)</h2>
+<p>Press Ctrl+F to open the find bar. Search for the word "apple" which appears here: apple, apple, apple.</p>
+<p>The current match should be orange, other matches yellow. Use Enter/Shift+Enter to navigate.</p>
+
+<h2>Zoom Test (Ctrl+/Ctrl-)</h2>
+<p>Press Ctrl+Plus to zoom in, Ctrl+Minus to zoom out, Ctrl+0 to reset.</p>
+<p>This text and all elements should scale uniformly when zooming.</p>
+<div style="width: 200px; height: 50px; background: #4CAF50; color: white; text-align: center; line-height: 50px;">
+  Green Box
+</div>
+
+<h2>Context Menu (Right-Click)</h2>
+<p>Right-click anywhere to see the context menu with Copy, Select All, Reload, View Source.</p>
+<p>Right-click on <a href="https://example.com">this link</a> to see Open Link and Copy Link options.</p>
+
+<h2>View Source (Ctrl+U)</h2>
+<p>Press Ctrl+U to view the raw HTML source of this page.</p>
+
+<hr>
+<h2>Phase 1 & 2 Verification</h2>
+
+<h3>Table with Border-Collapse</h3>
+<table style="border-collapse: collapse; width: 300px;">
+  <tr>
+    <th style="border: 1px solid #333; padding: 8px; background: #ddd;">Name</th>
+    <th style="border: 1px solid #333; padding: 8px; background: #ddd;">Age</th>
+    <th style="border: 1px solid #333; padding: 8px; background: #ddd;">City</th>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #333; padding: 8px;">Alice</td>
+    <td style="border: 1px solid #333; padding: 8px;">30</td>
+    <td style="border: 1px solid #333; padding: 8px;">NYC</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #333; padding: 8px;">Bob</td>
+    <td style="border: 1px solid #333; padding: 8px;">25</td>
+    <td style="border: 1px solid #333; padding: 8px;">LA</td>
+  </tr>
+</table>
+
+<h3>Float Text Wrapping</h3>
+<div style="background: #f0f0f0; padding: 10px; overflow: hidden;">
+  <div style="float: left; width: 100px; height: 100px; background: #2196F3; margin-right: 15px;"></div>
+  <p>This text should wrap around the blue float box on the left side. It should flow to the right of the float and then continue below the float when there is enough text. The wrapping behavior is a key part of CSS float layout.</p>
+</div>
+
+<h3>Border Box Model</h3>
+<div style="border: 3px solid red; padding: 15px; margin: 10px; background: #fff3e0;">
+  This div has a 3px red border, 15px padding, and 10px margin.
+</div>
+
+</body>
+</html>

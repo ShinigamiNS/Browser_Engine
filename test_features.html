@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+h2 { color: #333; text-decoration: underline; }
+
+/* Phase 2: filter */
+.filter-blur    { width:80px; height:80px; background:#e74c3c; filter:blur(4px); display:inline-block; margin:5px; }
+.filter-bright  { width:80px; height:80px; background:#3498db; filter:brightness(1.8); display:inline-block; margin:5px; }
+.filter-gray    { width:80px; height:80px; background:#2ecc71; filter:grayscale(1); display:inline-block; margin:5px; }
+.filter-sepia   { width:80px; height:80px; background:#f39c12; filter:sepia(0.8); display:inline-block; margin:5px; }
+.filter-contrast{ width:80px; height:80px; background:#9b59b6; filter:contrast(2); display:inline-block; margin:5px; }
+
+/* Phase 3: text-decoration longhands */
+.td-underline   { text-decoration-line: underline; text-decoration-color: red; font-size:18px; }
+.td-overline    { text-decoration-line: overline; text-decoration-color: blue; font-size:18px; }
+.td-through     { text-decoration-line: line-through; text-decoration-color: #888; font-size:18px; }
+.td-dashed      { text-decoration-line: underline; text-decoration-style: dashed; font-size:18px; }
+.td-double      { text-decoration-line: underline; text-decoration-style: double; font-size:18px; }
+
+/* Phase 4: radial-gradient */
+.radial1 { width:120px; height:80px; background: radial-gradient(circle, #ff6b6b, #4ecdc4); display:inline-block; margin:5px; }
+.radial2 { width:120px; height:80px; background: radial-gradient(ellipse, #a8e6cf, #3d5a80); display:inline-block; margin:5px; }
+.conic1  { width:120px; height:120px; background: conic-gradient(red, yellow, green, blue, red); display:inline-block; margin:5px; border-radius:50%; }
+
+/* Phase 5: sticky */
+.sticky-header { position:sticky; top:0; background:#2c3e50; color:white; padding:8px; z-index:10; }
+.scroll-content { height:300px; overflow:auto; border:1px solid #ccc; padding:10px; }
+.tall-content p { margin:5px 0; padding:5px; background:white; }
+
+/* JS test */
+#js-box { width:100px; height:100px; background:#e74c3c; margin:10px; }
+</style>
+</head>
+<body>
+
+<h2>Phase 1 — JS Interactivity</h2>
+<div id="js-box">Click button</div>
+<button onclick="document.getElementById('js-box').style.background='#27ae60'; document.getElementById('js-box').innerHTML='JS Works!'">Test JS Click</button>
+<span id="js-counter">Count: 0</span>
+<button onclick="var el=document.getElementById('js-counter'); el.innerHTML='Count: '+(parseInt(el.innerHTML.replace('Count: ',''))+1)">Increment</button>
+
+<h2>Phase 2 — CSS filter</h2>
+<div class="filter-blur"></div>
+<div class="filter-bright"></div>
+<div class="filter-gray"></div>
+<div class="filter-sepia"></div>
+<div class="filter-contrast"></div>
+
+<h2>Phase 3 — text-decoration longhands</h2>
+<p class="td-underline">Red underline text</p>
+<p class="td-overline">Blue overline text</p>
+<p class="td-through">Grey strikethrough text</p>
+<p class="td-dashed">Dashed underline text</p>
+<p class="td-double">Double underline text</p>
+
+<h2>Phase 4 — radial-gradient &amp; conic-gradient</h2>
+<div class="radial1"></div>
+<div class="radial2"></div>
+<div class="conic1"></div>
+
+<h2>Phase 5 — position:sticky</h2>
+<div class="scroll-content">
+  <div class="sticky-header">Sticky Header (scroll down)</div>
+  <div class="tall-content">
+    <p>Line 1</p><p>Line 2</p><p>Line 3</p><p>Line 4</p><p>Line 5</p>
+    <p>Line 6</p><p>Line 7</p><p>Line 8</p><p>Line 9</p><p>Line 10</p>
+    <p>Line 11</p><p>Line 12</p><p>Line 13</p><p>Line 14</p><p>Line 15</p>
+  </div>
+</div>
+
+</body>
+</html>

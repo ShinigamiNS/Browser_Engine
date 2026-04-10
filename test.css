@@ -1,0 +1,28 @@
+#header {
+    background: grey;
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+h1 {
+    color: yellow;
+    margin-left: 20px;
+}
+
+.container {
+    margin-top: 10px;
+    margin-left: 10px;
+    padding-left: 10px;
+}
+
+.container-blue {
+    background: blue;
+}
+
+.container-green {
+    background: green;
+}
+
+p {
+    color: white;
+}

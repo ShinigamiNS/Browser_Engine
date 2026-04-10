@@ -1,0 +1,26 @@
+<html>
+<head>
+    <style>
+        #box {
+            width: 100px;
+            height: 100px;
+            background-color: #ff0000;
+            display: block;
+            margin: 20px;
+        }
+        button {
+            padding: 10px;
+            background-color: #5082ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="box">Red Box</div>
+    <button onclick="document.querySelector('#box').style.background = '#00ff00'; document.querySelector('#box').innerHTML = 'Green Box!'">
+        Click Me to change color and text
+    </button>
+</body>
+</html>

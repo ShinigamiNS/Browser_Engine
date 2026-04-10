@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Phase 1 - All Feature Tests</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  ul, ol { padding-left: 40px; }
+  body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+  h1 { text-align: center; margin-bottom: 20px; color: #333; }
+  h2 { background: #333; color: #fff; padding: 8px 16px; margin: 20px 0 10px 0; font-size: 16px; }
+  .test-row { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .test-box { background: #fff; border: 1px solid #ccc; padding: 12px; flex: 1; min-width: 200px; }
+  .label { font-size: 11px; color: #888; margin-bottom: 6px; }
+  .pass { border-left: 4px solid #2a2; }
+  .expect { font-size: 11px; color: #555; margin-top: 6px; font-style: italic; }
+
+  /* ============================================================
+     1.1  TEXT-TRANSFORM
+     ============================================================ */
+  .tt-upper { text-transform: uppercase; }
+  .tt-lower { text-transform: lowercase; }
+  .tt-cap   { text-transform: capitalize; }
+  .tt-none  { text-transform: none; }
+  .tt-inherit-parent { text-transform: uppercase; }
+  .tt-inherit-child  { /* should inherit uppercase from parent */ }
+
+  /* ============================================================
+     1.2  TEXT-INDENT
+     ============================================================ */
+  .ti-40 { text-indent: 40px; }
+  .ti-pct { text-indent: 10%; width: 250px; }
+  .ti-neg { text-indent: -20px; padding-left: 30px; }
+  .ti-zero { text-indent: 0px; }
+
+  /* ============================================================
+     1.3  OUTLINE-OFFSET
+     ============================================================ */
+  .oo-pos { outline: 3px solid red; outline-offset: 8px; width: 100px; height: 50px; background: #ddd; }
+  .oo-zero { outline: 3px solid blue; outline-offset: 0px; width: 100px; height: 50px; background: #ddd; }
+  .oo-neg { outline: 3px solid green; outline-offset: -5px; width: 100px; height: 50px; background: #ddd; }
+
+  /* ============================================================
+     1.4  VISIBILITY
+     ============================================================ */
+  .vis-hidden { visibility: hidden; background: red; width: 100px; height: 40px; }
+  .vis-visible { visibility: visible; }
+  .vis-parent-hidden { visibility: hidden; }
+  .vis-child-visible { visibility: visible; background: #4a4; color: #fff; padding: 4px; }
+
+  /* ============================================================
+     1.6  LIST-STYLE-TYPE
+     ============================================================ */
+  .lst-disc { list-style-type: disc; }
+  .lst-circle { list-style-type: circle; }
+  .lst-square { list-style-type: square; }
+  .lst-decimal { list-style-type: decimal; }
+  .lst-lower-alpha { list-style-type: lower-alpha; }
+  .lst-upper-roman { list-style-type: upper-roman; }
+  .lst-none { list-style-type: none; }
+
+  /* ============================================================
+     1.7  BACKGROUND-SIZE / POSITION / REPEAT
+     ============================================================ */
+  .bg-box {
+    width: 200px; height: 120px; border: 2px solid #333; display: inline-block;
+    vertical-align: top; margin: 4px;
+    /* Use a data URI for a small red/blue checkerboard pattern */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='20' height='20' fill='%23e44'/%3E%3Crect x='20' y='0' width='20' height='20' fill='%2344e'/%3E%3Crect x='0' y='20' width='20' height='20' fill='%2344e'/%3E%3Crect x='20' y='20' width='20' height='20' fill='%23e44'/%3E%3C/svg%3E");
+  }
+  .bg-cover    { background-size: cover; background-repeat: no-repeat; }
+  .bg-contain  { background-size: contain; background-repeat: no-repeat; }
+  .bg-norepeat { background-size: auto; background-repeat: no-repeat; }
+  .bg-repeat-x { background-size: auto; background-repeat: repeat-x; }
+  .bg-repeat-y { background-size: auto; background-repeat: repeat-y; }
+  .bg-pos-center { background-size: 40px 40px; background-repeat: no-repeat; background-position: center center; }
+  .bg-pos-br   { background-size: 40px 40px; background-repeat: no-repeat; background-position: right bottom; }
+  .bg-50pct    { background-size: 50% 50%; background-repeat: no-repeat; }
+
+  /* ============================================================
+     1.8  OBJECT-FIT
+     ============================================================ */
+  .of-box { width: 150px; height: 100px; border: 2px solid #333; display: inline-block; vertical-align: top; margin: 4px; }
+  .of-fill    { object-fit: fill; }
+  .of-contain { object-fit: contain; }
+  .of-cover   { object-fit: cover; }
+  .of-none    { object-fit: none; }
+  .of-scale   { object-fit: scale-down; }
+
+  /* ============================================================
+     1.9  OVERFLOW-X / OVERFLOW-Y
+     ============================================================ */
+  .ov-box { width: 150px; height: 80px; border: 2px solid #333; display: inline-block; vertical-align: top; margin: 4px; position: relative; }
+  .ov-both   { overflow: hidden; }
+  .ov-x-only { overflow-x: hidden; overflow-y: visible; }
+  .ov-y-only { overflow-x: visible; overflow-y: hidden; }
+  .ov-scroll { overflow-x: hidden; overflow-y: scroll; }
+  .ov-inner { background: #e66; color: #fff; padding: 4px; width: 300px; height: 200px; font-size: 12px; }
+
+  /* ============================================================
+     1.5  PSEUDO-CLASSES (structural)
+     ============================================================ */
+  .pc-list li:first-child { background: #fdd; }
+  .pc-list li:last-child  { background: #ddf; }
+  .pc-list li:nth-child(2n) { font-weight: bold; }
+  .pc-list li:only-child { background: #ffd; }
+  .pc-empty:empty { background: #f44; width: 80px; height: 30px; }
+  .pc-not-empty { background: #4f4; width: 80px; height: 30px; }
+  .pc-first-of-type span:first-of-type { color: red; font-weight: bold; }
+  .pc-last-of-type span:last-of-type { color: blue; font-weight: bold; }
+  .pc-nth-of-type p:nth-of-type(odd) { background: #eef; }
+  input:disabled { background: #ccc; border: 2px solid #999; }
+  input:enabled  { background: #fff; border: 2px solid #4a4; }
+  input:checked + label { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Phase 1 Feature Tests</h1>
+
+<!-- ============================================================ -->
+<h2>1.1 - text-transform</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">uppercase</div>
+    <div class="tt-upper">hello world 123</div>
+    <div class="expect">Expected: HELLO WORLD 123</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">lowercase</div>
+    <div class="tt-lower">HELLO WORLD ABC</div>
+    <div class="expect">Expected: hello world abc</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">capitalize</div>
+    <div class="tt-cap">hello world foo bar</div>
+    <div class="expect">Expected: Hello World Foo Bar</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">none (override)</div>
+    <div class="tt-upper"><span class="tt-none">Should Stay Mixed</span></div>
+    <div class="expect">Expected: Should Stay Mixed (not uppercased)</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">inheritance</div>
+    <div class="tt-inherit-parent">
+      <span class="tt-inherit-child">child inherits</span>
+    </div>
+    <div class="expect">Expected: CHILD INHERITS</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1.2 - text-indent</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box pass" style="width: 300px;">
+    <div class="label">40px indent</div>
+    <div class="ti-40" style="border: 1px dashed #aaa;">First line should be indented 40px. This second line wraps normally without indent.</div>
+    <div class="expect">Expected: First line starts 40px in</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">10% indent (of 250px = 25px)</div>
+    <div class="ti-pct" style="border: 1px dashed #aaa;">First line indented by 10% of 250px width. Second line normal.</div>
+    <div class="expect">Expected: ~25px indent on first line</div>
+  </div>
+  <div class="test-box pass" style="width: 300px;">
+    <div class="label">negative indent (hanging)</div>
+    <div class="ti-neg" style="border: 1px dashed #aaa; padding-left: 30px;">Hanging indent: first line pulled left by 20px. Rest of text at normal padding.</div>
+    <div class="expect">Expected: First line hangs left of padding</div>
+  </div>
+  <div class="test-box pass" style="width: 300px;">
+    <div class="label">zero indent (no effect)</div>
+    <div class="ti-zero" style="border: 1px dashed #aaa;">No indent at all on this text block.</div>
+    <div class="expect">Expected: No indent</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1.3 - outline-offset</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box pass" style="padding: 20px;">
+    <div class="label">positive offset (8px gap)</div>
+    <div class="oo-pos" style="margin: 15px;">Box</div>
+    <div class="expect">Expected: Red outline 8px away from edges</div>
+  </div>
+  <div class="test-box pass" style="padding: 20px;">
+    <div class="label">zero offset (touching)</div>
+    <div class="oo-zero" style="margin: 15px;">Box</div>
+    <div class="expect">Expected: Blue outline touching the edges</div>
+  </div>
+  <div class="test-box pass" style="padding: 20px;">
+    <div class="label">negative offset (-5px overlap)</div>
+    <div class="oo-neg" style="margin: 15px;">Box</div>
+    <div class="expect">Expected: Green outline 5px inside the edges</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1.4 - visibility: hidden</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">hidden (takes space, invisible)</div>
+    <div>Before</div>
+    <div class="vis-hidden">THIS SHOULD BE INVISIBLE</div>
+    <div>After (gap above = element still takes space)</div>
+    <div class="expect">Expected: Gap between Before/After, no red box</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">hidden parent, visible child</div>
+    <div class="vis-parent-hidden" style="padding: 10px; background: #fcc;">
+      <div>Hidden parent text (invisible)</div>
+      <div class="vis-child-visible">Visible child inside hidden parent</div>
+      <div>More hidden text (invisible)</div>
+    </div>
+    <div class="expect">Expected: Only green "Visible child" shows</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">visible (explicit, no effect)</div>
+    <div class="vis-visible" style="background: #afa; padding: 4px;">I am explicitly visible</div>
+    <div class="expect">Expected: Visible normally</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1.5 - Pseudo-classes</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">:first-child (pink) / :last-child (blue) / :nth-child(2n) (bold)</div>
+    <ul class="pc-list" style="padding-left: 20px;">
+      <li>Item 1 (first = pink)</li>
+      <li>Item 2 (even = bold)</li>
+      <li>Item 3</li>
+      <li>Item 4 (even = bold, last = blue)</li>
+    </ul>
+    <div class="expect">Expected: #1 pink bg, #2 bold, #4 blue bg + bold</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">:only-child (yellow bg)</div>
+    <ul class="pc-list" style="padding-left: 20px;">
+      <li>I am the only child</li>
+    </ul>
+    <div class="expect">Expected: Yellow background (also first+last)</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">:empty (red box if empty)</div>
+    <div class="pc-empty"></div>
+    <div class="pc-empty pc-not-empty">not empty</div>
+    <div class="expect">Expected: Red box (empty), then green box (not empty)</div>
+  </div>
+</div>
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">:first-of-type / :last-of-type</div>
+    <div class="pc-first-of-type pc-last-of-type">
+      <span>First span (red bold)</span>
+      <em>An em element</em>
+      <span>Middle span</span>
+      <span>Last span (blue bold)</span>
+    </div>
+    <div class="expect">Expected: First span red bold, last span blue bold</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">:nth-of-type(odd)</div>
+    <div class="pc-nth-of-type">
+      <p>Para 1 (odd = light blue bg)</p>
+      <p>Para 2</p>
+      <p>Para 3 (odd = light blue bg)</p>
+      <p>Para 4</p>
+    </div>
+    <div class="expect">Expected: Para 1 and 3 have light blue bg</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">:disabled / :enabled / :checked</div>
+    <div>
+      <input type="text" disabled value="disabled input"><br>
+      <input type="text" value="enabled input"><br>
+      <input type="checkbox" checked id="cb1"><label for="cb1"> Checked (red bold label)</label><br>
+      <input type="checkbox" id="cb2"><label for="cb2"> Unchecked (normal label)</label>
+    </div>
+    <div class="expect">Expected: Disabled=grey border, Enabled=green border, Checked label=red bold</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1.6 - list-style-type</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">disc (default UL)</div>
+    <ul class="lst-disc" style="padding-left: 30px;"><li>Disc item 1</li><li>Disc item 2</li></ul>
+  </div>
+  <div class="test-box pass">
+    <div class="label">circle</div>
+    <ul class="lst-circle" style="padding-left: 30px;"><li>Circle item 1</li><li>Circle item 2</li></ul>
+  </div>
+  <div class="test-box pass">
+    <div class="label">square</div>
+    <ul class="lst-square" style="padding-left: 30px;"><li>Square item 1</li><li>Square item 2</li></ul>
+  </div>
+</div>
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">decimal (OL default)</div>
+    <ol class="lst-decimal" style="padding-left: 30px;"><li>Decimal 1</li><li>Decimal 2</li><li>Decimal 3</li></ol>
+  </div>
+  <div class="test-box pass">
+    <div class="label">lower-alpha</div>
+    <ol class="lst-lower-alpha" style="padding-left: 30px;"><li>Alpha a</li><li>Alpha b</li><li>Alpha c</li></ol>
+  </div>
+  <div class="test-box pass">
+    <div class="label">upper-roman</div>
+    <ol class="lst-upper-roman" style="padding-left: 30px;"><li>Roman I</li><li>Roman II</li><li>Roman III</li></ol>
+  </div>
+  <div class="test-box pass">
+    <div class="label">none (no markers)</div>
+    <ul class="lst-none" style="padding-left: 30px;"><li>No marker 1</li><li>No marker 2</li></ul>
+    <div class="expect">Expected: No bullets or numbers</div>
+  </div>
+</div>
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">OL start=5</div>
+    <ol start="5" class="lst-decimal" style="padding-left: 40px;"><li>Starts at 5</li><li>Then 6</li><li>Then 7</li></ol>
+    <div class="expect">Expected: Numbering starts at 5</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">nested lists (disc > circle > square)</div>
+    <ul style="padding-left: 25px;">
+      <li>Level 1 (disc)
+        <ul style="padding-left: 25px;">
+          <li>Level 2 (circle)
+            <ul style="padding-left: 25px;">
+              <li>Level 3 (square)</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <div class="expect">Expected: Bullet style changes at each level</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1.7 - background-size / position / repeat</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box" style="min-width: 100%;">
+    <div class="label">background-size: cover | contain | no-repeat | repeat-x | repeat-y | center | bottom-right | 50%</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+      <div>
+        <div class="bg-box bg-cover"></div>
+        <div style="font-size:11px; text-align:center;">cover</div>
+      </div>
+      <div>
+        <div class="bg-box bg-contain"></div>
+        <div style="font-size:11px; text-align:center;">contain</div>
+      </div>
+      <div>
+        <div class="bg-box bg-norepeat"></div>
+        <div style="font-size:11px; text-align:center;">no-repeat</div>
+      </div>
+      <div>
+        <div class="bg-box bg-repeat-x"></div>
+        <div style="font-size:11px; text-align:center;">repeat-x</div>
+      </div>
+      <div>
+        <div class="bg-box bg-repeat-y"></div>
+        <div style="font-size:11px; text-align:center;">repeat-y</div>
+      </div>
+      <div>
+        <div class="bg-box bg-pos-center"></div>
+        <div style="font-size:11px; text-align:center;">center 40x40</div>
+      </div>
+      <div>
+        <div class="bg-box bg-pos-br"></div>
+        <div style="font-size:11px; text-align:center;">right bottom</div>
+      </div>
+      <div>
+        <div class="bg-box bg-50pct"></div>
+        <div style="font-size:11px; text-align:center;">50% 50%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1.8 - object-fit</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box" style="min-width: 100%;">
+    <div class="label">All object-fit values on a 300x200 image in a 150x100 box</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <img class="of-box of-fill" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%234488cc'/%3E%3Ccircle cx='150' cy='100' r='60' fill='%23ff6644'/%3E%3Ctext x='150' y='105' text-anchor='middle' fill='white' font-size='20'%3E300x200%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">fill (stretches)</div>
+      </div>
+      <div>
+        <img class="of-box of-contain" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%234488cc'/%3E%3Ccircle cx='150' cy='100' r='60' fill='%23ff6644'/%3E%3Ctext x='150' y='105' text-anchor='middle' fill='white' font-size='20'%3E300x200%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">contain (letterbox)</div>
+      </div>
+      <div>
+        <img class="of-box of-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%234488cc'/%3E%3Ccircle cx='150' cy='100' r='60' fill='%23ff6644'/%3E%3Ctext x='150' y='105' text-anchor='middle' fill='white' font-size='20'%3E300x200%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">cover (crops)</div>
+      </div>
+      <div>
+        <img class="of-box of-none" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%234488cc'/%3E%3Ccircle cx='150' cy='100' r='60' fill='%23ff6644'/%3E%3Ctext x='150' y='105' text-anchor='middle' fill='white' font-size='20'%3E300x200%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">none (natural, clips)</div>
+      </div>
+      <div>
+        <img class="of-box of-scale" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%234488cc'/%3E%3Ccircle cx='150' cy='100' r='60' fill='%23ff6644'/%3E%3Ctext x='150' y='105' text-anchor='middle' fill='white' font-size='20'%3E300x200%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">scale-down (=contain)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edge case: small image in big box (scale-down should NOT scale up) -->
+<div class="test-row">
+  <div class="test-box" style="min-width: 100%;">
+    <div class="label">Edge case: 50x50 image in 150x100 box (scale-down should NOT scale up)</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <img class="of-box of-fill" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect width='50' height='50' fill='%23e44'/%3E%3Ctext x='25' y='30' text-anchor='middle' fill='white' font-size='12'%3E50%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">fill (stretches)</div>
+      </div>
+      <div>
+        <img class="of-box of-contain" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect width='50' height='50' fill='%23e44'/%3E%3Ctext x='25' y='30' text-anchor='middle' fill='white' font-size='12'%3E50%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">contain (scales up)</div>
+      </div>
+      <div>
+        <img class="of-box of-scale" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect width='50' height='50' fill='%23e44'/%3E%3Ctext x='25' y='30' text-anchor='middle' fill='white' font-size='12'%3E50%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">scale-down (stays 50x50)</div>
+      </div>
+      <div>
+        <img class="of-box of-none" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect width='50' height='50' fill='%23e44'/%3E%3Ctext x='25' y='30' text-anchor='middle' fill='white' font-size='12'%3E50%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">none (centered 50x50)</div>
+      </div>
+    </div>
+    <div class="expect">Expected: scale-down shows small centered 50x50 square, contain scales up to fill height</div>
+  </div>
+</div>
+
+<!-- Edge case: very wide image (extreme aspect ratio) -->
+<div class="test-row">
+  <div class="test-box" style="min-width: 100%;">
+    <div class="label">Edge case: extreme aspect ratio (400x40 banner in 150x100 box)</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <img class="of-box of-contain" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='40'%3E%3Crect width='400' height='40' fill='%23484'/%3E%3Ctext x='200' y='25' text-anchor='middle' fill='white' font-size='14'%3E400x40 banner%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">contain</div>
+      </div>
+      <div>
+        <img class="of-box of-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='40'%3E%3Crect width='400' height='40' fill='%23484'/%3E%3Ctext x='200' y='25' text-anchor='middle' fill='white' font-size='14'%3E400x40 banner%3C/text%3E%3C/svg%3E">
+        <div style="font-size:11px; text-align:center;">cover</div>
+      </div>
+    </div>
+    <div class="expect">Expected: contain = thin strip centered, cover = fills height, crops sides</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>1.9 - overflow-x / overflow-y</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">overflow: hidden (both axes clipped)</div>
+    <div class="ov-box ov-both">
+      <div class="ov-inner">This is wide and tall content that overflows in both X and Y directions. It should be fully clipped by the parent box.</div>
+    </div>
+    <div class="expect">Expected: Content clipped on all sides</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">overflow-x: hidden, overflow-y: visible</div>
+    <div class="ov-box ov-x-only">
+      <div class="ov-inner">Wide content clipped horizontally but overflows vertically downward past the box boundary.</div>
+    </div>
+    <div class="expect">Expected: Clipped left/right, overflows bottom</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">overflow-x: visible, overflow-y: hidden</div>
+    <div class="ov-box ov-y-only">
+      <div class="ov-inner">Tall content clipped vertically but overflows horizontally to the right past the box boundary.</div>
+    </div>
+    <div class="expect">Expected: Clipped top/bottom, overflows right</div>
+  </div>
+</div>
+
+<!-- Edge case: overflow with position:absolute child -->
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">overflow:hidden with absolutely positioned child</div>
+    <div style="width:150px; height:80px; border:2px solid #333; overflow:hidden; position:relative;">
+      <div style="position:absolute; top:-10px; left:-10px; width:100px; height:50px; background:rgba(255,0,0,0.5);">Positioned child (partially outside)</div>
+      <div>Normal content</div>
+    </div>
+    <div class="expect">Expected: Red box clipped at container edges</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">overflow: visible (default, no clipping)</div>
+    <div style="width:150px; height:80px; border:2px solid #333; overflow:visible;">
+      <div class="ov-inner">This content overflows in all directions and should be fully visible without any clipping at all.</div>
+    </div>
+    <div class="expect">Expected: Content overflows freely in all directions</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Edge Cases & Combinations</h2>
+<!-- ============================================================ -->
+<div class="test-row">
+  <div class="test-box pass">
+    <div class="label">text-transform + text-indent combined</div>
+    <div style="text-transform: uppercase; text-indent: 50px; width: 250px; border: 1px dashed #aaa;">
+      this first line should be uppercase and indented. second line is just uppercase.
+    </div>
+    <div class="expect">Expected: First line indented 50px AND all uppercase</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">visibility:hidden + outline</div>
+    <div style="visibility:hidden; outline:3px solid red; outline-offset:5px; width:80px; height:40px; background:#ddd;">
+      Hidden with outline
+    </div>
+    <div class="expect">Expected: Nothing visible (outline hidden too), but space reserved</div>
+  </div>
+  <div class="test-box pass">
+    <div class="label">overflow:hidden + list items</div>
+    <div style="width:120px; height:60px; overflow:hidden; border:2px solid #333;">
+      <ul style="padding-left:25px;">
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+        <li>Item 4</li>
+        <li>Item 5</li>
+      </ul>
+    </div>
+    <div class="expect">Expected: Only first ~2-3 items visible, rest clipped</div>
+  </div>
+</div>
+
+<div style="height: 40px;"></div>
+<div style="text-align: center; color: #888; font-size: 12px;">End of Phase 1 Tests</div>
+<div style="height: 20px;"></div>
+
+</body>
+</html>
