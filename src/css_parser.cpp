@@ -250,6 +250,12 @@ SimpleSelector CSSParser::parse_simple_selector() {
           else parg += fc;
         }
       }
+      // Legacy CSS2 single-colon syntax (:before/:after) is also a
+      // pseudo-element — treating it as a pseudo-class would apply the
+      // rule to the base element itself (e.g. clearfix `.x:after
+      // {display:table}` turning .x into a table).
+      if (!is_pseudo_elem && (pname == "before" || pname == "after"))
+        is_pseudo_elem = true;
       // Store ::before / ::after pseudo-elements; skip other pseudo-elements
       if (is_pseudo_elem) {
         if (pname == "before" || pname == "after") {

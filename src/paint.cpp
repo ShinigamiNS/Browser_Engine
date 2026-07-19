@@ -856,12 +856,12 @@ void render_layout_box(DisplayList &list, const std::shared_ptr<LayoutBox> &box,
   bool has_bg = !bg_color_str.empty() || !bg_image_url.empty() || has_gradient ||
                 btw > 0 || brw > 0 || bbw > 0 || blw > 0;
 
-  // <img> elements — suppress all background/border rendering regardless of src.
-  // The actual image pixels are blitted by main.cpp's blit_images_pass when the
-  // image loads. Placeholder borders for failed/pending images clutter the page.
+  // <img> (and rasterized <svg>) elements — suppress all background/border
+  // rendering regardless of src. The actual image pixels are blitted by the
+  // renderer's blit_images_pass when the image loads. Placeholder borders for
+  // failed/pending images clutter the page.
   if (has_bg && box->style_node->node &&
-      box->style_node->node->type == NodeType::Element &&
-      box->style_node->node->data == "img") {
+      is_image_element(*box->style_node->node)) {
     has_bg = false;
   }
 
@@ -1359,8 +1359,8 @@ void render_layout_box(DisplayList &list, const std::shared_ptr<LayoutBox> &box,
           list.push_back(pcmd);
         }
       }
-    } else if (tag == "img") {
-      // Real images are blitted by main.cpp's blit_images_pass after text rendering.
+    } else if (is_image_element(*box->style_node->node)) {
+      // Real images are blitted by the renderer's blit_images_pass after text rendering.
       float img_w = box->dimensions.content.width;
       float img_h = box->dimensions.content.height;
       // If the image is reasonably sized but has no src / can't load, show alt text
@@ -1471,9 +1471,45 @@ void render_layout_box(DisplayList &list, const std::shared_ptr<LayoutBox> &box,
   }
 }
 
+// Background color the renderer should clear the viewport with. Per CSS, the
+// root element's background propagates to the canvas; if the root has none,
+// the body's background is used. White when neither specifies one.
+uint32_t g_canvas_bg_color = 0x00FFFFFF;
+
+static uint32_t box_bg_color(const std::shared_ptr<LayoutBox> &box) {
+  if (!box || !box->style_node) return 0x01000000;
+  std::string bg = box->style_node->value("background-color");
+  if (bg.empty()) bg = box->style_node->value("background");
+  if (bg.empty()) return 0x01000000;
+  return parse_color(bg);
+}
+
 DisplayList build_display_list(const std::shared_ptr<LayoutBox> &root) {
   DisplayList list;
   if (root) {
+    // Canvas background: root element's, else body's, else white
+    uint32_t canvas = box_bg_color(root);
+    if (canvas == 0x01000000) {
+      // Search shallow descendants for the <body> box
+      std::function<std::shared_ptr<LayoutBox>(
+          const std::shared_ptr<LayoutBox> &, int)> find_body;
+      find_body = [&](const std::shared_ptr<LayoutBox> &b, int depth)
+          -> std::shared_ptr<LayoutBox> {
+        if (!b || depth > 3) return nullptr;
+        if (b->style_node && b->style_node->node &&
+            b->style_node->node->type == NodeType::Element &&
+            b->style_node->node->data == "body")
+          return b;
+        for (auto &c : b->children) {
+          auto r = find_body(c, depth + 1);
+          if (r) return r;
+        }
+        return nullptr;
+      };
+      canvas = box_bg_color(find_body(root, 0));
+    }
+    g_canvas_bg_color = (canvas == 0x01000000) ? 0x00FFFFFF : canvas;
+
     render_layout_box(list, root, 0x00000000, 16, false); // Default to black
   }
   return list;

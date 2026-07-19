@@ -16,8 +16,27 @@ void apply_ua_defaults(StyledNode *node, const std::string &tag) {
   // Elements that must never be rendered, regardless of author CSS.
   if (tag == "script" || tag == "style" || tag == "head" || tag == "meta" ||
       tag == "link"   || tag == "noscript" || tag == "template" ||
-      tag == "svg"    || tag == "canvas"   || tag == "object" || tag == "param") {
+      tag == "canvas" || tag == "object" || tag == "param") {
     sv["display"] = "none";
+  }
+  // Bare <svg> can't be rendered — hide it. Rasterized SVGs (page_loader
+  // gave them a src attribute pointing at the image cache) render like
+  // <img>, so they stay visible and follow normal CSS.
+  if (tag == "svg") {
+    if (!(node->node && node->node->attributes.count("src"))) {
+      sv["display"] = "none";
+    } else {
+      // Percentage sizes on SVGs (e.g. `svg{width:100%;height:100%}` icon
+      // rules) resolve against containers this engine models poorly
+      // (inline wrappers get no anonymous box), which blows up the page
+      // layout. The rasterized bitmap has a fixed intrinsic size — prefer
+      // it over percentage-based CSS sizes.
+      for (const char *prop : {"width", "height", "max-width", "max-height"}) {
+        auto it = sv.find(prop);
+        if (it != sv.end() && !it->second.empty() && it->second.back() == '%')
+          sv.erase(it);
+      }
+    }
   }
   // Custom notification/toast elements — always hidden until JS shows them;
   // since we can't run full JS, keep them hidden.

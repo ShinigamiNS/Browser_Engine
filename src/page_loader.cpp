@@ -13,6 +13,7 @@
 #include "utils.h"
 #include <algorithm>
 #include <atomic>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <string>
@@ -44,30 +45,230 @@ static QJSEngine* g_qjs_engine = nullptr;
 
 std::vector<ScrollContainer> g_scroll_containers;
 
+// When true, prefers-color-scheme:dark media queries match (dark theme).
+bool g_dark_mode = false;
+
 // ── URL helpers ───────────────────────────────────────────────────────────────
 
-static std::string resolve_url(const std::string &src,
-                               const std::string &page_url) {
+// Percent-decode a URL path component (%20 -> space, etc.). '+' is left alone
+// because it is only a space in query strings, not in paths.
+std::string percent_decode(const std::string &s) {
+  std::string out;
+  out.reserve(s.size());
+  for (size_t i = 0; i < s.size(); ++i) {
+    if (s[i] == '%' && i + 2 < s.size() &&
+        isxdigit((unsigned char)s[i + 1]) && isxdigit((unsigned char)s[i + 2])) {
+      auto hex = [](char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        return c - 'A' + 10;
+      };
+      out += (char)((hex(s[i + 1]) << 4) | hex(s[i + 2]));
+      i += 2;
+    } else {
+      out += s[i];
+    }
+  }
+  return out;
+}
+
+// Percent-encode a string for use in a query string value.
+std::string percent_encode_query(const std::string &s) {
+  static const char *hex_digits = "0123456789ABCDEF";
+  std::string out;
+  out.reserve(s.size());
+  for (size_t i = 0; i < s.size(); ++i) {
+    unsigned char c = (unsigned char)s[i];
+    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+      out += (char)c;
+    } else if (c == ' ') {
+      out += '+';
+    } else {
+      out += '%';
+      out += hex_digits[c >> 4];
+      out += hex_digits[c & 0xF];
+    }
+  }
+  return out;
+}
+
+// Convert a file:// URL to a local filesystem path.
+// Handles file:///C:/..., file://C:/..., percent-encoding, and backslashes.
+std::string file_url_to_path(const std::string &url) {
+  std::string path = url;
+  if (path.substr(0, 8) == "file:///")
+    path = path.substr(8);
+  else if (path.substr(0, 7) == "file://")
+    path = path.substr(7);
+  // Drop any #fragment / ?query — meaningless for local files
+  size_t hash = path.find('#');
+  if (hash != std::string::npos) path = path.substr(0, hash);
+  size_t q = path.find('?');
+  if (q != std::string::npos) path = path.substr(0, q);
+  path = percent_decode(path);
+  // A leading slash before a drive letter ("/C:/...") is a URL artifact
+  if (path.size() >= 3 && path[0] == '/' && isalpha((unsigned char)path[1]) &&
+      path[2] == ':')
+    path = path.substr(1);
+  return path;
+}
+
+// Clean up raw user/command-line input and turn it into a loadable URL.
+// - trims whitespace, control chars, and surrounding quotes
+// - Windows paths (C:\..., C:/...) become file:// URLs
+// - things that can't be a hostname become a Google search
+// - bare domains get https:// prepended
+std::string normalize_url_input(const std::string &raw) {
+  std::string s = raw;
+  // Trim whitespace/control characters from both ends
+  size_t b = 0, e = s.size();
+  while (b < e && (unsigned char)s[b] <= ' ') b++;
+  while (e > b && (unsigned char)s[e - 1] <= ' ') e--;
+  s = s.substr(b, e - b);
+  // Strip one pair of surrounding quotes, then trim again
+  if (s.size() >= 2 && (s.front() == '"' || s.front() == '\'') &&
+      s.back() == s.front()) {
+    s = s.substr(1, s.size() - 2);
+    b = 0; e = s.size();
+    while (b < e && (unsigned char)s[b] <= ' ') b++;
+    while (e > b && (unsigned char)s[e - 1] <= ' ') e--;
+    s = s.substr(b, e - b);
+  }
+  if (s.empty()) return "";
+
+  if (s.substr(0, 7) == "file://") return s;
+  if (s.substr(0, 8) == "https://" || s.substr(0, 7) == "http://") {
+    // Strip embedded whitespace (broken copy/paste artifacts)
+    std::string cleaned;
+    cleaned.reserve(s.size());
+    for (size_t i = 0; i < s.size(); ++i)
+      if ((unsigned char)s[i] > ' ') cleaned += s[i];
+    // Google search results are a JavaScript app shell this engine cannot
+    // execute (Google stopped serving basic HTML results in 2025, even to
+    // text browsers). Rewrite to DuckDuckGo's HTML endpoint so search works;
+    // the address bar shows the rewritten URL.
+    size_t gpos = cleaned.find("google.com/search?");
+    if (gpos != std::string::npos) {
+      size_t qpos = cleaned.find('?', gpos);
+      std::string query = cleaned.substr(qpos + 1);
+      std::string q;
+      size_t p = 0;
+      while (p < query.size()) {
+        size_t amp = query.find('&', p);
+        std::string kv = (amp == std::string::npos) ? query.substr(p)
+                                                    : query.substr(p, amp - p);
+        if (kv.substr(0, 2) == "q=") { q = kv.substr(2); break; }
+        p = (amp == std::string::npos) ? query.size() : amp + 1;
+      }
+      if (!q.empty())
+        return "https://html.duckduckgo.com/html/?q=" + q;
+    }
+    return cleaned;
+  }
+  if (s.substr(0, 6) == "about:") return s;
+
+  // Windows filesystem paths -> file URLs
+  bool win_path = (s.size() >= 3 && isalpha((unsigned char)s[0]) &&
+                   s[1] == ':' && (s[2] == '\\' || s[2] == '/'));
+  if (win_path || s.substr(0, 2) == "\\\\") {
+    std::string p = s;
+    for (size_t i = 0; i < p.size(); ++i)
+      if (p[i] == '\\') p[i] = '/';
+    return "file:///" + p;
+  }
+
+  // No scheme: decide between URL and search query.
+  // Searches: anything with spaces, or without a dot (not a hostname).
+  size_t host_end = s.find_first_of("/?#");
+  std::string host = (host_end == std::string::npos) ? s : s.substr(0, host_end);
+  bool has_space = (s.find(' ') != std::string::npos);
+  bool has_dot = (host.find('.') != std::string::npos);
+  bool is_localhost = (host == "localhost" ||
+                       host.substr(0, 10) == "localhost:");
+  if (has_space || (!has_dot && !is_localhost))
+    return "https://html.duckduckgo.com/html/?q=" + percent_encode_query(s);
+
+  return (is_localhost ? "http://" : "https://") + s;
+}
+
+// Security gate for content-initiated navigation (link clicks, form actions,
+// meta-refresh). `target` is an already-resolved absolute URL; `page_url` is
+// the page the navigation originates from.
+//
+// The rule that matters: a page served over http(s) must never be able to
+// navigate the browser to a local file:// URL — that is a local-file
+// disclosure / SSRF vector. file:// pages (local test files opened by the
+// user) may link among themselves. The address bar and command line are
+// trusted entry points and bypass this check entirely.
+bool is_content_navigation_allowed(const std::string &target,
+                                   const std::string &page_url) {
+  auto scheme_of = [](const std::string &u) -> std::string {
+    size_t c = u.find(':');
+    if (c == std::string::npos) return "";
+    std::string s = u.substr(0, c);
+    for (auto &ch : s) ch = (char)tolower((unsigned char)ch);
+    return s;
+  };
+  std::string ts = scheme_of(target);
+  std::string ps = scheme_of(page_url);
+
+  // Never let content drive these schemes.
+  if (ts == "javascript" || ts == "vbscript" || ts == "chrome" ||
+      (ts == "about" && target != "about:blank"))
+    return false;
+
+  bool page_is_web = (ps == "http" || ps == "https");
+  bool target_is_local = (ts == "file");
+  if (page_is_web && target_is_local) return false; // block web -> file://
+
+  // http(s), data:, mailto:, tel:, relative (empty scheme), and file->file
+  // are allowed.
+  return true;
+}
+
+std::string resolve_url(const std::string &src,
+                        const std::string &page_url) {
   if (src.empty())
     return "";
-  if (src.substr(0, 8) == "https://" || src.substr(0, 7) == "http://")
+  if (src.substr(0, 8) == "https://" || src.substr(0, 7) == "http://" ||
+      src.substr(0, 7) == "file://" || src.substr(0, 5) == "data:")
     return src;
+  // Scheme of the current page (https by default)
+  size_t scheme_end = page_url.find("://");
+  std::string scheme = (scheme_end == std::string::npos)
+                           ? "https"
+                           : page_url.substr(0, scheme_end);
   if (src.substr(0, 2) == "//")
-    return "https:" + src;
+    return (scheme == "file" ? "https:" : scheme + ":") + src;
   if (src[0] == '/') {
-    size_t scheme_end = page_url.find("://");
     if (scheme_end == std::string::npos)
       return "";
+    if (scheme == "file") {
+      // Root-relative on a local page: resolve against the drive root
+      std::string path = page_url.substr(scheme_end + 3);
+      while (!path.empty() && path[0] == '/') path = path.substr(1);
+      size_t drive_end = path.find('/');
+      std::string drive =
+          (drive_end == std::string::npos) ? path : path.substr(0, drive_end);
+      return "file:///" + drive + src;
+    }
     size_t host_end = page_url.find('/', scheme_end + 3);
     std::string origin = (host_end == std::string::npos)
                              ? page_url
                              : page_url.substr(0, host_end);
-    return "https://" + origin.substr(origin.find("://") + 3) + src;
+    return origin + src;
   }
-  size_t last_slash = page_url.rfind('/');
-  if (last_slash == std::string::npos)
-    return src;
-  return page_url.substr(0, last_slash + 1) + src;
+  // Path-relative: replace everything after the last slash
+  std::string base = page_url;
+  size_t hash = base.find('#');
+  if (hash != std::string::npos) base = base.substr(0, hash);
+  size_t q = base.find('?');
+  if (q != std::string::npos) base = base.substr(0, q);
+  size_t last_slash = base.rfind('/');
+  if (last_slash == std::string::npos ||
+      (scheme_end != std::string::npos && last_slash < scheme_end + 3))
+    return base + "/" + src;
+  return base.substr(0, last_slash + 1) + src;
 }
 
 static bool is_undecoded_format(const std::string &url) {
@@ -372,9 +573,128 @@ static void replace_dom_node(const std::shared_ptr<Node>& old_node,
     old_node->prev_sibling.reset();
 }
 
+// ── History & bookmarks storage ───────────────────────────────────────────────
+// Simple tab-separated files next to the executable. One entry per line:
+//   url \t title
+// Kept small and human-readable; good enough for a scratch browser.
+
+static const char *HISTORY_FILE   = "browser_history.txt";
+static const char *BOOKMARKS_FILE = "browser_bookmarks.txt";
+
+static std::string sanitize_line(const std::string &s) {
+  std::string o;
+  for (char c : s)
+    if (c != '\n' && c != '\r' && c != '\t') o += c;
+  return o;
+}
+
+// True for URLs that should never be recorded (internal pages, blanks).
+static bool is_recordable_url(const std::string &url) {
+  if (url.empty()) return false;
+  if (url.substr(0, 6) == "about:") return false;
+  if (url.substr(0, 12) == "view-source:") return false;
+  return true;
+}
+
+void record_history(const std::string &url, const std::string &title) {
+  // Never record while incognito.
+  if (g_private_mode || !is_recordable_url(url)) return;
+  std::ofstream f(HISTORY_FILE, std::ios::app);
+  if (!f) return;
+  f << sanitize_line(url) << "\t" << sanitize_line(title) << "\n";
+}
+
+bool add_bookmark(const std::string &url, const std::string &title) {
+  if (!is_recordable_url(url)) return false;
+  // De-dupe: skip if this URL is already bookmarked.
+  {
+    std::ifstream in(BOOKMARKS_FILE);
+    std::string line;
+    while (std::getline(in, line)) {
+      size_t tab = line.find('\t');
+      std::string u = (tab == std::string::npos) ? line : line.substr(0, tab);
+      if (u == url) return false;
+    }
+  }
+  std::ofstream f(BOOKMARKS_FILE, std::ios::app);
+  if (!f) return false;
+  f << sanitize_line(url) << "\t" << sanitize_line(title) << "\n";
+  return true;
+}
+
+// Build an about: listing page (history or bookmarks) as HTML.
+static std::string build_listing_page(const std::string &which) {
+  bool is_hist = (which == "history");
+  const char *file = is_hist ? HISTORY_FILE : BOOKMARKS_FILE;
+  const char *heading = is_hist ? "History" : "Bookmarks";
+
+  // Read entries; for history, show newest first and de-dupe.
+  std::vector<std::pair<std::string, std::string>> entries;
+  {
+    std::ifstream in(file);
+    std::string line;
+    while (std::getline(in, line)) {
+      if (line.empty()) continue;
+      size_t tab = line.find('\t');
+      std::string u = (tab == std::string::npos) ? line : line.substr(0, tab);
+      std::string t = (tab == std::string::npos) ? "" : line.substr(tab + 1);
+      if (!u.empty()) entries.push_back({u, t});
+    }
+  }
+  if (is_hist) {
+    std::reverse(entries.begin(), entries.end());
+    std::vector<std::pair<std::string, std::string>> dedup;
+    for (auto &e : entries) {
+      bool seen = false;
+      for (auto &d : dedup) if (d.first == e.first) { seen = true; break; }
+      if (!seen) dedup.push_back(e);
+      if (dedup.size() >= 300) break;
+    }
+    entries.swap(dedup);
+  }
+
+  auto esc = [](const std::string &s) {
+    std::string o;
+    for (char c : s) {
+      if (c == '<') o += "&lt;";
+      else if (c == '>') o += "&gt;";
+      else if (c == '&') o += "&amp;";
+      else if (c == '"') o += "&quot;";
+      else o += c;
+    }
+    return o;
+  };
+
+  std::string body;
+  body += "<html><head><title>" + std::string(heading) + "</title><style>";
+  body += "body{font-family:sans-serif;background:#1e2026;color:#e0e4f0;"
+          "margin:0;padding:40px;}";
+  body += "h1{color:#5082ff;font-size:28px;}";
+  body += ".row{padding:8px 0;border-bottom:1px solid #2c2f38;}";
+  body += "a{color:#7aa2ff;text-decoration:none;font-size:15px;}";
+  body += ".t{color:#c0c6d8;font-size:14px;}";
+  body += ".u{color:#6a7080;font-size:12px;}";
+  body += ".empty{color:#6a7080;font-size:15px;}";
+  body += "</style></head><body>";
+  body += "<h1>" + std::string(heading) + "</h1>";
+  if (entries.empty()) {
+    body += "<p class=\"empty\">Nothing here yet.</p>";
+  } else {
+    for (auto &e : entries) {
+      std::string title = e.second.empty() ? e.first : e.second;
+      body += "<div class=\"row\"><a href=\"" + esc(e.first) + "\">";
+      body += "<span class=\"t\">" + esc(title) + "</span></a><br>";
+      body += "<span class=\"u\">" + esc(e.first) + "</span></div>";
+    }
+  }
+  body += "</body></html>";
+  return body;
+}
+
 // ── Page loading pipeline ─────────────────────────────────────────────────────
 
-void load_page(const std::string &raw_url) {
+void load_page(const std::string &raw_url, int tab_id,
+               const std::string &post_body) {
   // Atomically claim the loading slot — only one load at a time.
   bool expected = false;
   if (!g_load_in_progress.compare_exchange_strong(expected, true)) {
@@ -388,6 +708,8 @@ void load_page(const std::string &raw_url) {
     ~LoadGuard() { g_load_in_progress.store(false); }
   } _guard;
 
+  bool page_load_error = false;
+  bool page_cert_error = false;
   try {
     std::string html;
     std::string url = raw_url;
@@ -409,32 +731,80 @@ void load_page(const std::string &raw_url) {
              "<p class=\"footer\">Built from scratch with custom HTML parser, "
              "CSS engine, layout engine, and paint system.</p>"
              "</div></body></html>";
+    } else if (url == "about:history" || url == "about:bookmarks") {
+      html = build_listing_page(url == "about:history" ? "history"
+                                                       : "bookmarks");
     } else {
-      std::string file_path = url;
-      if (file_path.substr(0, 8) == "file:///") {
-        file_path = file_path.substr(8);
-      } else if (file_path.substr(0, 7) == "file://") {
-        file_path = file_path.substr(7);
-      }
-      html = read_file(file_path);
-      if (html.empty()) {
-        if (url.length() < 4 ||
-            (url.substr(0, 8) != "https://" && url.substr(0, 7) != "http://")) {
-          url = "https://" + url;
+      bool is_file = (url.substr(0, 7) == "file://");
+      std::string err_title, err_summary, err_detail, err_accent = "#e84848";
+      if (is_file) {
+        std::string file_path = file_url_to_path(url);
+        html = read_file(file_path);
+        if (html.empty()) {
+          err_title = "File Not Found";
+          err_summary = "The file could not be opened.";
+          err_detail = file_path;
         }
-        html = fetch_https(url);
+      } else {
+        HttpResponse resp =
+            http_fetch(url, post_body.empty() ? "GET" : "POST", post_body,
+                       g_private_mode);
+        html = resp.body;
+        // Follow redirects in the address bar/history.
+        if (!resp.final_url.empty()) url = resp.final_url;
+
+        if (resp.error == "cert") {
+          page_cert_error = true;
+          // Distinct TLS interstitial — the certificate failed strict
+          // validation (expired, self-signed, wrong host, or untrusted CA).
+          err_title = "Your connection is not private";
+          err_summary =
+              "This site's security certificate is not trusted, so the "
+              "connection may be intercepted. The page was blocked.";
+          err_detail = "NET::ERR_CERT_INVALID  \xE2\x80\x94  " + url;
+          err_accent = "#e8a848";
+          html.clear();
+        } else if (!resp.ok || html.empty()) {
+          err_title = "Network Error";
+          if (resp.error == "dns")
+            err_summary = "The server's address could not be found (DNS).";
+          else if (resp.error == "connect")
+            err_summary = "The connection to the server was refused or reset.";
+          else if (resp.error == "timeout")
+            err_summary = "The server took too long to respond.";
+          else
+            err_summary = "The page could not be loaded.";
+          err_detail = url;
+          html.clear();
+        }
       }
-      if (html.empty()) {
-        html = "<html><head><title>Error</title>"
+      if (!err_title.empty()) page_load_error = true;
+      if (html.empty() && !err_title.empty()) {
+        auto esc_html = [](const std::string &s) {
+          std::string o;
+          for (char c : s) {
+            if (c == '<') o += "&lt;";
+            else if (c == '>') o += "&gt;";
+            else if (c == '&') o += "&amp;";
+            else o += c;
+          }
+          return o;
+        };
+        html = "<html><head><title>" + esc_html(err_title) + "</title>"
                "<style>"
-               "body { background-color: #1e2026; color: #e0e4f0; }"
-               ".err { padding: 60px; }"
-               "h1 { color: #e84848; }"
-               "p { font-size: 16px; color: #8890a0; }"
+               "html { background-color: #1e2026; }"
+               "body { background-color: #1e2026; color: #e0e4f0;"
+               "  font-family: sans-serif; }"
+               ".err { padding: 60px; max-width: 700px; }"
+               "h1 { color: " + err_accent + "; font-size: 28px; }"
+               "p { font-size: 16px; color: #a0a6b8; line-height: 1.5; }"
+               ".detail { font-size: 13px; color: #6a7080;"
+               "  font-family: monospace; margin-top: 24px; }"
                "</style></head>"
                "<body><div class=\"err\">"
-               "<h1>Network Error</h1>"
-               "<p>Could not load the page.</p>"
+               "<h1>" + esc_html(err_title) + "</h1>"
+               "<p>" + esc_html(err_summary) + "</p>"
+               "<p class=\"detail\">" + esc_html(err_detail) + "</p>"
                "</div></body></html>";
       }
     }
@@ -443,7 +813,7 @@ void load_page(const std::string &raw_url) {
         "head,script,style,meta,link,title{display:none}\n"
         "body{margin:8px}\n"
         "a,span,b,strong,em,i,u,small,abbr,cite,code,sub,sup,label,"
-        "button,input,select,textarea,img{"
+        "button,input,select,textarea,img,svg{"
         "display:inline}\n"
         "div,p,h1,h2,h3,h4,h5,h6,ul,ol,li,section,article,header,"
         "footer,nav,main,aside,form,table,tr,thead,tbody,tfoot,caption,"
@@ -503,6 +873,15 @@ void load_page(const std::string &raw_url) {
           }
           std::string sheet_url = resolve_url(href_it->second, url);
           if (sheet_url.empty()) return;
+          // Security: only fetch http(s) stylesheets. A remote page must not
+          // be able to pull a local file:// resource (or any other scheme)
+          // as a subresource — that would disclose local files to the site.
+          bool sheet_http = (sheet_url.substr(0, 8) == "https://" ||
+                             sheet_url.substr(0, 7) == "http://");
+          if (!sheet_http) {
+            std::cerr << "Blocked non-http stylesheet: " << sheet_url << "\n";
+            return;
+          }
           std::cerr << "Fetching CSS: " << sheet_url << "\n";
           std::string sheet = fetch_https(sheet_url);
           if (!sheet.empty()) {
@@ -555,6 +934,13 @@ void load_page(const std::string &raw_url) {
       if (condition.find("prefers-contrast:more") != std::string::npos ||
           condition.find("prefers-contrast: more") != std::string::npos)
         return false;
+      // prefers-color-scheme — match dark blocks only when dark mode is on,
+      // and light blocks only when it's off (like a real browser reporting
+      // the OS/browser theme preference).
+      if (condition.find("prefers-color-scheme") != std::string::npos) {
+        bool wants_dark = condition.find("dark") != std::string::npos;
+        return g_dark_mode ? wants_dark : !wants_dark;
+      }
       // hover:hover matches on desktop
       if (condition.find("hover:hover") != std::string::npos ||
           condition.find("hover: hover") != std::string::npos)
@@ -749,7 +1135,8 @@ void load_page(const std::string &raw_url) {
                        cond_lower.find("prefers-contrast: more") != std::string::npos) {
               matches = false;
             } else if (cond_lower.find("prefers-color-scheme") != std::string::npos) {
-              matches = (cond_lower.find("light") != std::string::npos);
+              bool wants_dark = cond_lower.find("dark") != std::string::npos;
+              matches = g_dark_mode ? wants_dark : !wants_dark;
             } else if (cond_lower.find("prefers-reduced-motion") != std::string::npos) {
               matches = false;
             } else {
@@ -881,17 +1268,21 @@ void load_page(const std::string &raw_url) {
     // ── Step 6: JavaScript Execution (after DOM + CSSOM are ready) ────────────
     // Per the browser rendering pipeline: JS runs after HTML parsing and CSS
     // parsing are complete, so scripts have access to the full DOM and CSSOM.
+    // The engine is created locally and handed to the main thread inside
+    // PageResult — the previous page's engine is destroyed on the main
+    // thread when the result is installed (never here, where the main
+    // thread could still be using it).
+    QJSEngine *page_engine = nullptr;
     {
       bool run_js = (total_nodes <= 5000);
       std::cerr << "JS engine: " << (run_js ? "enabled" : "skipped (too many DOM nodes)") << "\n";
       std::cerr.flush();
-      if (g_qjs_engine) { qjs_destroy(g_qjs_engine); g_qjs_engine = nullptr; }
       if (run_js) {
-        g_qjs_engine = qjs_create(root);
-        qjs_set_page_url(g_qjs_engine, url);
-        qjs_set_viewport(g_qjs_engine, buffer_width > 0 ? buffer_width : 800,
-                                       g_viewport_height > 0 ? g_viewport_height : 600);
-        qjs_set_layout_cb(g_qjs_engine, [](Node *n, DOMRect &r) -> bool {
+        page_engine = qjs_create(root);
+        qjs_set_page_url(page_engine, url);
+        qjs_set_viewport(page_engine, buffer_width > 0 ? buffer_width : 800,
+                                      g_viewport_height > 0 ? g_viewport_height : 600);
+        qjs_set_layout_cb(page_engine, [](Node *n, DOMRect &r) -> bool {
             if (!global_layout_root || !n) return false;
             std::function<bool(std::shared_ptr<LayoutBox>, Node *, DOMRect &)> walk;
             walk = [&](std::shared_ptr<LayoutBox> box, Node *tgt, DOMRect &out) -> bool {
@@ -910,8 +1301,8 @@ void load_page(const std::string &raw_url) {
             return walk(global_layout_root, n, r);
         });
 
-        qjs_run_scripts(g_qjs_engine, root);
-        qjs_call_global(g_qjs_engine, "onload");
+        qjs_run_scripts(page_engine, root);
+        qjs_call_global(page_engine, "onload");
       }
     }
 
@@ -957,22 +1348,36 @@ void load_page(const std::string &raw_url) {
           if (it != g_image_cache.end()) { w = it->second.width; h = it->second.height; }
           LeaveCriticalSection(&g_image_cache_cs);
         }
-        auto img_node = ElementNode("img");
-        img_node->attributes["src"] = key;
-        if (w > 0) img_node->attributes["width"]  = std::to_string(w);
-        if (h > 0) img_node->attributes["height"] = std::to_string(h);
-        // Copy id/class/style from the original SVG so CSS selectors still match
-        for (const char* attr : {"id", "class", "style", "aria-label", "data-hveid"}) {
-            if (svg_nodes[i]->attributes.count(attr))
-                img_node->attributes[attr] = svg_nodes[i]->attributes.at(attr);
+        // Turn the <svg> into a replaced image in place: keep the tag (and
+        // all its attributes) so CSS selectors like `.x svg{}` still match,
+        // point src at the rasterized cache entry, and drop the children so
+        // no phantom boxes are laid out. Only set width/height attrs when
+        // the original element had them — otherwise CSS controls the size.
+        auto &svg = svg_nodes[i];
+        svg->attributes["src"] = key;
+        bool had_w = svg->attributes.count("width") > 0;
+        bool had_h = svg->attributes.count("height") > 0;
+        if (had_w || had_h) {
+          if (w > 0) svg->attributes["width"]  = std::to_string(w);
+          if (h > 0) svg->attributes["height"] = std::to_string(h);
         }
-        replace_dom_node(svg_nodes[i], img_node);
+        for (auto &c : svg->children) {
+          if (!c) continue;
+          c->parent.reset();
+          c->next_sibling.reset();
+          c->prev_sibling.reset();
+        }
+        svg->children.clear();
       }
     }
 
     std::cerr << "DOM ready, building style tree...\n";
 
     PageResult *pr = new PageResult();
+    pr->tab_id          = tab_id;
+    pr->qjs_engine      = page_engine;
+    pr->load_error      = page_load_error;
+    pr->cert_error      = page_cert_error;
     pr->page_url        = url;
     pr->raw_html        = std::move(saved_raw_html);
     pr->main_stylesheet  = stylesheet;
@@ -1027,20 +1432,43 @@ void load_page(const std::string &raw_url) {
   }
 }
 
-struct LoadArg { std::string url; };
+struct LoadArg { std::string url; int tab_id; std::string post_body; };
 static DWORD WINAPI load_page_thread(LPVOID p) {
   LoadArg *arg = (LoadArg *)p;
-  load_page(arg->url);
+  load_page(arg->url, arg->tab_id, arg->post_body);
   delete arg;
   return 0;
 }
 
-void navigate_to(const std::string &url) {
+static void navigate_impl(const std::string &url,
+                          const std::string &post_body) {
+  // Normalize whatever we were handed (address bar text, command line,
+  // history entries, hrefs). Call sites may have already pushed the raw
+  // string into tab history/address bar — sync those to the cleaned URL.
+  std::string clean = normalize_url_input(url);
+  if (clean != url) {
+    Tab *t = browser_ui.active_tab();
+    if (t) {
+      if (t->url == url) t->url = clean;
+      if (t->history_index >= 0 && t->history_index < (int)t->history.size() &&
+          t->history[t->history_index] == url)
+        t->history[t->history_index] = clean;
+    }
+    if (browser_ui.get_address_text() == url)
+      browser_ui.set_address_text(clean);
+  }
   browser_ui.set_loading(true);
   browser_ui.set_status("Loading...");
-  LoadArg *arg = new LoadArg{url};
+  Tab *active = browser_ui.active_tab();
+  LoadArg *arg = new LoadArg{clean, active ? active->id : -1, post_body};
   HANDLE t = CreateThread(NULL, 0, load_page_thread, arg, 0, NULL);
   if (t) CloseHandle(t);
+}
+
+void navigate_to(const std::string &url) { navigate_impl(url, ""); }
+
+void navigate_to_post(const std::string &url, const std::string &post_body) {
+  navigate_impl(url, post_body);
 }
 
 // ── DOM rebuild helpers for hover/focus/JS ────────────────────────────────────

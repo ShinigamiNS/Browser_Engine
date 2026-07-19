@@ -1,6 +1,7 @@
 #include "browser_ui.h"
 #include <algorithm>
 #include <cstring>
+#include <cstring>
 
 // ============================================================================
 // BrowserUI Implementation
@@ -208,7 +209,9 @@ void BrowserUI::on_mouse_down(int x, int y) {
     if (tab_idx >= 0) {
       set_active_tab(tab_idx);
       blur_address_bar();
-      if (on_navigate_ && active_tab() && !active_tab()->url.empty()) {
+      if (on_tab_switch_) {
+        if (active_tab()) on_tab_switch_(active_tab()->id);
+      } else if (on_navigate_ && active_tab() && !active_tab()->url.empty()) {
         on_navigate_(active_tab()->url);
       }
     }
@@ -216,8 +219,12 @@ void BrowserUI::on_mouse_down(int x, int y) {
 
   case UIHitResult::TabClose:
     if (tab_idx >= 0) {
+      if (on_tab_close_ && tab_idx < (int)tabs_.size())
+        on_tab_close_(tabs_[tab_idx].id);
       close_tab(tab_idx);
-      if (on_navigate_ && active_tab() && !active_tab()->url.empty()) {
+      if (on_tab_switch_) {
+        if (active_tab()) on_tab_switch_(active_tab()->id);
+      } else if (on_navigate_ && active_tab() && !active_tab()->url.empty()) {
         on_navigate_(active_tab()->url);
       }
     }
@@ -225,6 +232,7 @@ void BrowserUI::on_mouse_down(int x, int y) {
 
   case UIHitResult::NewTab:
     add_tab("", "New Tab");
+    if (on_tab_switch_ && active_tab()) on_tab_switch_(active_tab()->id);
     focus_address_bar();
     break;
 
@@ -500,6 +508,33 @@ void BrowserUI::paint(HDC hdc) {
   paint_tab_bar(hdc);
   paint_toolbar(hdc);
   paint_status_bar(hdc);
+
+  // ── Private / Incognito badge ──
+  // A purple pill at the top-right of the tab bar makes it unmistakable that
+  // the session isn't recording history/cookies.
+  if (private_mode_) {
+    const char *label = "Private";
+    HGDIOBJ of = SelectObject(hdc, font_status_ ? font_status_ : font_addr_);
+    SIZE sz;
+    GetTextExtentPoint32A(hdc, label, (int)strlen(label), &sz);
+    int pill_w = sz.cx + 26;
+    int pill_h = 20;
+    int px = window_w_ - pill_w - 10;
+    int py = (TAB_BAR_HEIGHT - pill_h) / 2;
+    HBRUSH pb = CreateSolidBrush(RGB(96, 64, 168));
+    HGDIOBJ op = SelectObject(hdc, GetStockObject(NULL_PEN));
+    HGDIOBJ ob = SelectObject(hdc, pb);
+    RoundRect(hdc, px, py, px + pill_w, py + pill_h, pill_h, pill_h);
+    SelectObject(hdc, ob);
+    SelectObject(hdc, op);
+    DeleteObject(pb);
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, RGB(240, 236, 255));
+    RECT tr = {px, py, px + pill_w, py + pill_h};
+    DrawTextA(hdc, label, -1, &tr,
+              DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    SelectObject(hdc, of);
+  }
 }
 
 // ────────────────────── Tab Bar ──────────────────────
@@ -675,9 +710,61 @@ void BrowserUI::paint_toolbar(HDC hdc) {
   FillRect(hdc, &addr_bg_r, addr_bg_br);
   DeleteObject(addr_bg_br);
 
+  // ── Security indicator ── (drawn at the left inside the address field)
+  int text_left = address_rect_.x + 10;
+  if (!address_focused_ && security_level_ != SecurityLevel::None) {
+    int cx = address_rect_.x + 14;
+    int cy = address_rect_.y + address_rect_.h / 2;
+    if (security_level_ == SecurityLevel::Secure) {
+      // Green padlock: shackle arc + body.
+      COLORREF lock = RGB(60, 190, 110);
+      HPEN pen = CreatePen(PS_SOLID, 2, lock);
+      HGDIOBJ op = SelectObject(hdc, pen);
+      HGDIOBJ ob = SelectObject(hdc, GetStockObject(NULL_BRUSH));
+      Arc(hdc, cx - 4, cy - 8, cx + 4, cy + 1, cx - 4, cy - 3, cx + 4, cy - 3);
+      SelectObject(hdc, ob);
+      SelectObject(hdc, op);
+      DeleteObject(pen);
+      HBRUSH body = CreateSolidBrush(lock);
+      RECT br = {cx - 5, cy - 3, cx + 5, cy + 6};
+      FillRect(hdc, &br, body);
+      DeleteObject(body);
+    } else if (security_level_ == SecurityLevel::Insecure ||
+               security_level_ == SecurityLevel::Danger) {
+      // Amber/red warning circle with "!".
+      COLORREF warn = security_level_ == SecurityLevel::Danger
+                          ? RGB(232, 72, 72)
+                          : RGB(230, 168, 72);
+      HBRUSH wb = CreateSolidBrush(warn);
+      HGDIOBJ op = SelectObject(hdc, GetStockObject(NULL_PEN));
+      HGDIOBJ ob = SelectObject(hdc, wb);
+      Ellipse(hdc, cx - 7, cy - 7, cx + 7, cy + 7);
+      SelectObject(hdc, ob);
+      SelectObject(hdc, op);
+      DeleteObject(wb);
+      SetTextColor(hdc, RGB(255, 255, 255));
+      RECT ir = {cx - 7, cy - 8, cx + 7, cy + 7};
+      HGDIOBJ of2 = SelectObject(hdc, font_addr_);
+      DrawTextA(hdc, "!", 1, &ir,
+                DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+      SelectObject(hdc, of2);
+    } else if (security_level_ == SecurityLevel::Local) {
+      // Grey document glyph (simple page outline).
+      COLORREF doc = RGB(140, 145, 160);
+      HPEN pen = CreatePen(PS_SOLID, 1, doc);
+      HGDIOBJ op = SelectObject(hdc, pen);
+      HGDIOBJ ob = SelectObject(hdc, GetStockObject(NULL_BRUSH));
+      Rectangle(hdc, cx - 4, cy - 7, cx + 5, cy + 7);
+      SelectObject(hdc, ob);
+      SelectObject(hdc, op);
+      DeleteObject(pen);
+    }
+    text_left = address_rect_.x + 30;
+  }
+
   // Draw address text
   HGDIOBJ old_font = SelectObject(hdc, font_addr_);
-  RECT text_clip = {address_rect_.x + 10, address_rect_.y + 2,
+  RECT text_clip = {text_left, address_rect_.y + 2,
                     address_rect_.x + address_rect_.w - 8,
                     address_rect_.y + address_rect_.h - 2};
 

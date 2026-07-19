@@ -6,6 +6,7 @@
 #include "image_cache.h"
 #include "layout.h"
 #include "lexbor_adapter.h"
+#include "net.h"
 #include "page_loader.h"
 #include "paint.h"
 #include "quickjs_adapter.h"
@@ -14,6 +15,7 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <numeric>
 #include <string>
 #include <windows.h>
@@ -168,16 +170,17 @@ static void update_find_matches() {
   if (g_find_current_match >= g_find_total_matches) g_find_current_match = 0;
 }
 
+static void clamp_main_scroll(); // defined below (needs zoom state)
+extern float g_zoom_level;
+
 static void scroll_to_find_match(int match_idx) {
   if (match_idx < 0 || match_idx >= (int)g_find_matches.size()) return;
   auto &m = g_find_matches[match_idx];
   int content_h = browser_ui.content_height();
-  // Scroll so match is visible (centered vertically)
-  int target = (int)(m.y - content_h / 2.f);
-  if (target < 0) target = 0;
-  float total_h = global_layout_root ? global_layout_root->dimensions.content.height : (float)content_h;
-  if (target > (int)(total_h - content_h)) target = (int)std::max(0.f, total_h - content_h);
-  scroll_y = target;
+  // Scroll so match is visible (centered vertically); match coords are in
+  // layout space, scroll_y is in zoomed pixel space
+  scroll_y = (int)(m.y * g_zoom_level - content_h / 2.f);
+  clamp_main_scroll();
 }
 
 // ── Zoom state ────────────────────────────────────────────────────────────────
@@ -196,6 +199,24 @@ static void apply_zoom() {
   rebuild_scroll_containers();
 }
 
+// Total document height in screen pixels (layout height scaled by zoom)
+static float document_pixel_height() {
+  int content_h = browser_ui.content_height();
+  float total_h = global_layout_root
+                      ? global_layout_root->dimensions.content.height
+                      : (float)content_h;
+  return total_h * g_zoom_level;
+}
+
+// Keep scroll_y within [0, doc_height - viewport]
+static void clamp_main_scroll() {
+  int content_h = browser_ui.content_height();
+  float max_scroll = document_pixel_height() - (float)content_h;
+  if (max_scroll < 0.f) max_scroll = 0.f;
+  if (scroll_y < 0) scroll_y = 0;
+  if (scroll_y > (int)max_scroll) scroll_y = (int)max_scroll;
+}
+
 // ── Context Menu IDs ──────────────────────────────────────────────────────────
 #define IDM_COPY          40001
 #define IDM_SELECT_ALL    40002
@@ -204,9 +225,198 @@ static void apply_zoom() {
 #define IDM_RELOAD        40005
 #define IDM_VIEW_SOURCE   40006
 #define IDM_COPY_IMAGE    40007
+#define IDM_SAVE_LINK     40008
+#define IDM_SAVE_IMAGE    40009
+
+// ── Downloads ─────────────────────────────────────────────────────────────────
+// User-initiated only (context-menu "Save link/image as"). Fetches the bytes on
+// a worker thread and writes them to the user's Downloads folder.
+
+struct DownloadArg { std::string url; };
+
+static std::string downloads_dir() {
+  char profile[MAX_PATH] = {0};
+  DWORD n = GetEnvironmentVariableA("USERPROFILE", profile, MAX_PATH);
+  if (n == 0 || n >= MAX_PATH) return "";
+  return std::string(profile) + "\\Downloads\\";
+}
+
+// Derive a safe local filename from a URL's last path segment.
+static std::string filename_from_url(const std::string &url) {
+  std::string u = url;
+  size_t q = u.find_first_of("?#");
+  if (q != std::string::npos) u = u.substr(0, q);
+  size_t slash = u.find_last_of('/');
+  std::string name = (slash == std::string::npos) ? u : u.substr(slash + 1);
+  // Strip characters illegal in Windows filenames.
+  std::string safe;
+  for (char c : name) {
+    if (c == '\\' || c == '/' || c == ':' || c == '*' || c == '?' ||
+        c == '"' || c == '<' || c == '>' || c == '|' || (unsigned char)c < 32)
+      continue;
+    safe += c;
+  }
+  if (safe.empty()) safe = "download";
+  return safe;
+}
+
+static DWORD WINAPI download_thread(LPVOID param) {
+  DownloadArg *arg = (DownloadArg *)param;
+  std::string url = arg->url;
+  delete arg;
+
+  std::string bytes;
+  if (url.substr(0, 5) == "data:") {
+    bytes = decode_data_uri(url);
+  } else if (url.substr(0, 4) == "http") {
+    bytes = http_fetch(url, "GET", "", g_private_mode).body;
+  } else {
+    browser_ui.set_status("Cannot download: " + url);
+    PostMessage(g_hwnd, WM_USER + 5, 0, 0);
+    return 0;
+  }
+  if (bytes.empty()) {
+    browser_ui.set_status("Download failed: " + url);
+    PostMessage(g_hwnd, WM_USER + 5, 0, 0);
+    return 0;
+  }
+
+  std::string dir = downloads_dir();
+  std::string base = filename_from_url(url);
+  // Avoid clobbering an existing file: append (1), (2), ...
+  std::string path = dir + base;
+  for (int i = 1; GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES;
+       ++i) {
+    size_t dot = base.find_last_of('.');
+    std::string stem = (dot == std::string::npos) ? base : base.substr(0, dot);
+    std::string ext = (dot == std::string::npos) ? "" : base.substr(dot);
+    path = dir + stem + " (" + std::to_string(i) + ")" + ext;
+  }
+
+  HANDLE hf = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                          FILE_ATTRIBUTE_NORMAL, NULL);
+  if (hf == INVALID_HANDLE_VALUE) {
+    browser_ui.set_status("Could not write file to Downloads");
+    PostMessage(g_hwnd, WM_USER + 5, 0, 0);
+    return 0;
+  }
+  DWORD written = 0;
+  WriteFile(hf, bytes.data(), (DWORD)bytes.size(), &written, NULL);
+  CloseHandle(hf);
+  browser_ui.set_status("Saved to Downloads: " + base + " (" +
+                        std::to_string(bytes.size() / 1024) + " KB)");
+  PostMessage(g_hwnd, WM_USER + 5, 0, 0);
+  return 0;
+}
+
+static void start_download(const std::string &url) {
+  browser_ui.set_status("Downloading " + url + " ...");
+  DownloadArg *arg = new DownloadArg{url};
+  HANDLE t = CreateThread(NULL, 0, download_thread, arg, 0, NULL);
+  if (t) CloseHandle(t);
+}
 
 // ── View Source ───────────────────────────────────────────────────────────────
 std::string g_raw_html_source;
+
+// ── Per-tab page state ────────────────────────────────────────────────────────
+// Each tab keeps its own loaded document so switching tabs swaps content
+// instead of refetching the page.
+
+struct TabPageState {
+  std::shared_ptr<Node>        dom_root;
+  Stylesheet                   main_stylesheet;
+  Stylesheet                   hover_stylesheet;
+  Stylesheet                   focus_stylesheet;
+  std::shared_ptr<LayoutBox>   layout_root;
+  DisplayList                  display_list;
+  std::vector<ScrollContainer> scroll_containers;
+  std::string                  page_url;
+  std::string                  raw_html;
+  int                          scroll_y = 0;
+  QJSEngine                   *qjs_engine = nullptr;
+  BrowserUI::SecurityLevel     security = BrowserUI::SecurityLevel::None;
+};
+
+// Classify the address-bar security state from the final URL + load result.
+static BrowserUI::SecurityLevel security_for(const std::string &url,
+                                             bool cert_error) {
+  if (cert_error) return BrowserUI::SecurityLevel::Danger;
+  if (url.substr(0, 8) == "https://") return BrowserUI::SecurityLevel::Secure;
+  if (url.substr(0, 7) == "http://") return BrowserUI::SecurityLevel::Insecure;
+  if (url.substr(0, 7) == "file://" ||
+      url.substr(0, 12) == "view-source:")
+    return BrowserUI::SecurityLevel::Local;
+  return BrowserUI::SecurityLevel::None;
+}
+
+static std::map<int, TabPageState> g_tab_pages;
+static int g_installed_tab_id = -1; // tab whose page is in the globals
+
+// Free a closed tab's cached page (and its JS engine).
+static void drop_tab_page(int tab_id) {
+  auto it = g_tab_pages.find(tab_id);
+  if (it == g_tab_pages.end()) return;
+  if (it->second.qjs_engine) {
+    if (get_g_qjs_engine() == it->second.qjs_engine)
+      get_g_qjs_engine() = nullptr;
+    qjs_destroy(it->second.qjs_engine);
+  }
+  g_tab_pages.erase(it);
+  if (g_installed_tab_id == tab_id) g_installed_tab_id = -1;
+}
+
+// Swap a tab's cached page into the live globals. Returns false if the tab
+// has no cached page yet (caller should navigate instead).
+static bool install_tab_page(int tab_id) {
+  auto it = g_tab_pages.find(tab_id);
+  if (it == g_tab_pages.end()) return false;
+
+  // Remember scroll position of the page we're switching away from
+  if (g_installed_tab_id != tab_id) {
+    auto cur = g_tab_pages.find(g_installed_tab_id);
+    if (cur != g_tab_pages.end()) cur->second.scroll_y = scroll_y;
+  }
+
+  TabPageState &st = it->second;
+  get_g_dom_root()          = st.dom_root;
+  get_g_main_stylesheet()   = st.main_stylesheet;
+  get_g_hover_stylesheet()  = st.hover_stylesheet;
+  get_g_focus_stylesheet()  = st.focus_stylesheet;
+  get_g_qjs_engine()        = st.qjs_engine;
+  global_layout_root        = st.layout_root;
+  g_current_page_url        = st.page_url;
+  g_raw_html_source         = st.raw_html;
+
+  focused_box = nullptr;
+  has_selection = false;
+  g_has_selection = false;
+  g_find_bar_open = false;
+  g_find_query.clear();
+  g_find_matches.clear();
+  g_find_total_matches = 0;
+
+  // Relayout at the current viewport (window size / zoom may have changed
+  // since this page was cached)
+  if (global_layout_root && buffer_width > 0) {
+    Dimensions viewport;
+    viewport.content.width  = (float)buffer_width / g_zoom_level;
+    viewport.content.height = 0.0f;
+    global_layout_root->layout(viewport);
+    master_display_list = build_display_list(global_layout_root);
+    rebuild_scroll_containers();
+  } else {
+    master_display_list = st.display_list;
+    g_scroll_containers = st.scroll_containers;
+  }
+
+  scroll_y = st.scroll_y;
+  clamp_main_scroll();
+  g_installed_tab_id = tab_id;
+  browser_ui.set_security_level(st.security);
+  browser_ui.set_status(st.page_url.empty() ? "Ready" : st.page_url);
+  return true;
+}
 
 static void show_view_source(HWND hwnd) {
   if (g_raw_html_source.empty()) return;
@@ -234,7 +444,13 @@ static void show_view_source(HWND hwnd) {
     "p { color: #cdd6f4; font-family: Consolas; font-size: 13px; margin: 0; padding: 0; }"
     "</style></head><body><p>" + escaped + "</p></body></html>";
   std::string tab_title = "Source: " + g_current_page_url;
-  browser_ui.add_tab("view-source:" + g_current_page_url, tab_title);
+  // Save the scroll position of the tab we're leaving
+  {
+    auto cur = g_tab_pages.find(g_installed_tab_id);
+    if (cur != g_tab_pages.end()) cur->second.scroll_y = scroll_y;
+  }
+  std::string vs_url = "view-source:" + g_current_page_url;
+  int vs_tab_id = browser_ui.add_tab(vs_url, tab_title);
   g_raw_html_source = source_html;
   auto root = lexbor_parse_to_dom(source_html);
   if (root) {
@@ -254,13 +470,123 @@ static void show_view_source(HWND hwnd) {
       lr->layout(vp);
       get_g_dom_root() = root;
       get_g_main_stylesheet() = ss;
+      get_g_qjs_engine() = nullptr; // view-source pages run no JS
       global_layout_root = lr;
       master_display_list = build_display_list(lr);
       rebuild_scroll_containers();
       scroll_y = 0;
+      g_current_page_url = vs_url;
+      // Register the view-source page as this tab's cached state
+      TabPageState vs;
+      vs.dom_root        = root;
+      vs.main_stylesheet = ss;
+      vs.layout_root     = lr;
+      vs.display_list    = master_display_list;
+      vs.page_url        = vs_url;
+      vs.raw_html        = source_html;
+      g_tab_pages[vs_tab_id] = std::move(vs);
+      g_installed_tab_id = vs_tab_id;
     }
   }
   InvalidateRect(hwnd, NULL, FALSE);
+}
+
+// ── Form submission ───────────────────────────────────────────────────────────
+
+// Walk up from `start` to the enclosing <form>, gather its successful
+// controls, and navigate to action?name=value&... (GET). Returns false if
+// there is no enclosing form.
+static bool submit_form_for_node(std::shared_ptr<Node> start) {
+  auto form = start;
+  while (form &&
+         !(form->type == NodeType::Element && form->data == "form"))
+    form = form->parent.lock();
+  if (!form) return false;
+
+  auto attr_of = [](const std::shared_ptr<Node> &n,
+                    const char *key) -> std::string {
+    auto it = n->attributes.find(key);
+    return it == n->attributes.end() ? "" : it->second;
+  };
+
+  std::string query;
+  auto append_pair = [&](const std::string &name, const std::string &value) {
+    if (name.empty()) return;
+    if (!query.empty()) query += "&";
+    query += percent_encode_query(name) + "=" + percent_encode_query(value);
+  };
+
+  std::function<void(const std::shared_ptr<Node> &)> collect;
+  collect = [&](const std::shared_ptr<Node> &n) {
+    if (!n) return;
+    if (n->type == NodeType::Element) {
+      const std::string &tag = n->data;
+      if (tag == "input") {
+        std::string type = attr_of(n, "type");
+        for (auto &c : type) c = (char)tolower((unsigned char)c);
+        bool skip = (type == "submit" || type == "button" || type == "reset" ||
+                     type == "file" || type == "image");
+        bool needs_checked = (type == "checkbox" || type == "radio");
+        if (!skip && (!needs_checked || n->attributes.count("checked")))
+          append_pair(attr_of(n, "name"), attr_of(n, "value"));
+      } else if (tag == "textarea") {
+        std::string value;
+        for (auto &c : n->children)
+          if (c->type == NodeType::Text) value += c->data;
+        append_pair(attr_of(n, "name"), value);
+      } else if (tag == "select") {
+        std::shared_ptr<Node> chosen, first_opt;
+        std::function<void(const std::shared_ptr<Node> &)> find_opt;
+        find_opt = [&](const std::shared_ptr<Node> &o) {
+          if (!o) return;
+          if (o->type == NodeType::Element && o->data == "option") {
+            if (!first_opt) first_opt = o;
+            if (!chosen && o->attributes.count("selected")) chosen = o;
+          }
+          for (auto &c : o->children) find_opt(c);
+        };
+        find_opt(n);
+        if (!chosen) chosen = first_opt;
+        if (chosen) {
+          std::string value = attr_of(chosen, "value");
+          if (value.empty())
+            for (auto &c : chosen->children)
+              if (c->type == NodeType::Text) value += c->data;
+          append_pair(attr_of(n, "name"), value);
+        }
+      }
+    }
+    for (auto &c : n->children) collect(c);
+  };
+  collect(form);
+
+  std::string action = attr_of(form, "action");
+  std::string url = action.empty() ? g_current_page_url
+                                   : resolve_url(action, g_current_page_url);
+  // Security gate: don't let a web form POST/GET to a local file:// target.
+  if (!is_content_navigation_allowed(url, g_current_page_url)) {
+    browser_ui.set_status("Blocked form submission to " + url);
+    return true;
+  }
+  std::string method = attr_of(form, "method");
+  for (auto &c : method) c = (char)tolower((unsigned char)c);
+
+  // Replace any existing query/fragment with ours
+  size_t cut = url.find_first_of("?#");
+  if (cut != std::string::npos) url = url.substr(0, cut);
+  bool is_post = (method == "post");
+  if (!is_post && !query.empty()) url += "?" + query;
+
+  Tab *tab = browser_ui.active_tab();
+  if (tab) {
+    tab->push_url(url);
+    browser_ui.set_address_text(url);
+  }
+  if (is_post)
+    navigate_to_post(url, query);
+  else
+    navigate_to(url);
+  return true;
 }
 
 // ── Context menu state ───────────────────────────────────────────────────────
@@ -441,6 +767,41 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
       focused_box = hit_test_content(global_layout_root, content_x, content_y_val);
 
+      // If the click landed on a non-editable wrapper, focus the first text
+      // control inside it (clicking a search box's container should still
+      // focus the search field, like real browsers do).
+      {
+        auto is_editable = [](const std::shared_ptr<LayoutBox> &b) -> bool {
+          if (!b || !b->style_node || !b->style_node->node) return false;
+          const std::string &tag = b->style_node->node->data;
+          if (tag == "textarea") return true;
+          if (tag != "input") return false;
+          std::string type;
+          auto it = b->style_node->node->attributes.find("type");
+          if (it != b->style_node->node->attributes.end()) type = it->second;
+          for (auto &c : type) c = (char)tolower((unsigned char)c);
+          return type == "" || type == "text" || type == "search" ||
+                 type == "url" || type == "email" || type == "tel" ||
+                 type == "number" || type == "password";
+        };
+        if (focused_box && !is_editable(focused_box)) {
+          std::function<std::shared_ptr<LayoutBox>(
+              const std::shared_ptr<LayoutBox> &)> find_editable;
+          find_editable = [&](const std::shared_ptr<LayoutBox> &b)
+              -> std::shared_ptr<LayoutBox> {
+            if (!b) return nullptr;
+            if (is_editable(b)) return b;
+            for (auto &c : b->children) {
+              auto r = find_editable(c);
+              if (r) return r;
+            }
+            return nullptr;
+          };
+          auto editable = find_editable(focused_box);
+          if (editable) focused_box = editable;
+        }
+      }
+
       // JavaScript onclick
       if (focused_box && focused_box->style_node && focused_box->style_node->node) {
         auto node = focused_box->style_node->node;
@@ -510,36 +871,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
           }
         }
         if (btn_node) {
-          std::function<std::string(std::shared_ptr<LayoutBox>)> find_input;
-          find_input = [&](std::shared_ptr<LayoutBox> box) -> std::string {
-            if (!box) return "";
-            if (box->style_node && box->style_node->node &&
-                box->style_node->node->data == "input") {
-              std::string itype = box->style_node->node->attributes["type"];
-              if (itype != "hidden" && itype != "submit" && itype != "button")
-                return box->style_node->node->attributes["value"];
-            }
-            for (auto &c : box->children) {
-              std::string res = find_input(c);
-              if (!res.empty()) return res;
-            }
-            return "";
-          };
           bool has_onclick = btn_node->attributes.count("onclick") > 0;
-          if (!has_onclick) {
-            std::string val = find_input(global_layout_root);
-            if (!val.empty()) {
-              std::string nav_url = "https://google.com/search?q=" + val;
-              for (char &c : nav_url) if (c == ' ') c = '+';
-              Tab *tab = browser_ui.active_tab();
-              if (tab) {
-                tab->push_url(nav_url);
-                browser_ui.set_address_text(nav_url);
-              }
-              navigate_to(nav_url);
-              focused_box = nullptr;
-            }
-          }
+          std::string btn_type = btn_node->attributes.count("type")
+                                     ? btn_node->attributes["type"]
+                                     : "";
+          // <button type="button"> never submits; plain <button> does
+          bool submits = (btn_node->data != "button" || btn_type != "button");
+          if (!has_onclick && submits && submit_form_for_node(btn_node))
+            focused_box = nullptr;
         }
       }
 
@@ -565,35 +904,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             skip = true;
           if (!skip && !href.empty()) {
             // Resolve relative URLs against current page URL
-            std::string resolved = href;
-            if (href.substr(0, 8) != "https://" &&
-                href.substr(0, 7) != "http://") {
-              if (href.substr(0, 2) == "//") {
-                resolved = "https:" + href;
-              } else if (href[0] == '/') {
-                size_t scheme_end = g_current_page_url.find("://");
-                if (scheme_end != std::string::npos) {
-                  size_t host_end =
-                      g_current_page_url.find('/', scheme_end + 3);
-                  std::string origin =
-                      (host_end == std::string::npos)
-                          ? g_current_page_url
-                          : g_current_page_url.substr(0, host_end);
-                  resolved = origin + href;
-                }
-              } else {
-                size_t last_slash = g_current_page_url.rfind('/');
-                if (last_slash != std::string::npos)
-                  resolved = g_current_page_url.substr(0, last_slash + 1) + href;
+            std::string resolved = resolve_url(href, g_current_page_url);
+            // Security gate: block content-initiated navigation to local
+            // files or other dangerous schemes from a web page.
+            if (!is_content_navigation_allowed(resolved, g_current_page_url)) {
+              std::cerr << "Blocked navigation to " << resolved
+                        << " from " << g_current_page_url << "\n";
+              browser_ui.set_status("Blocked: " + resolved);
+            } else {
+              Tab *tab = browser_ui.active_tab();
+              if (tab) {
+                tab->push_url(resolved);
+                browser_ui.set_address_text(resolved);
               }
+              navigate_to(resolved);
+              focused_box = nullptr;
             }
-            Tab *tab = browser_ui.active_tab();
-            if (tab) {
-              tab->push_url(resolved);
-              browser_ui.set_address_text(resolved);
-            }
-            navigate_to(resolved);
-            focused_box = nullptr;
           }
         }
       }
@@ -661,8 +987,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     int wmy = mpt.y;
     bool handled = false;
     if (wmy > browser_ui.content_y()) {
-      float doc_x = (float)wmx;
-      float doc_y = (float)(wmy - browser_ui.content_y() + scroll_y);
+      // Scroll container bounds are in layout coords; convert from pixels
+      float doc_x = (float)wmx / g_zoom_level;
+      float doc_y = (float)(wmy - browser_ui.content_y() + scroll_y) / g_zoom_level;
       for (auto &sc : g_scroll_containers) {
         if (doc_x >= sc.bounds.x && doc_x <= sc.bounds.x + sc.bounds.width &&
             doc_y >= sc.bounds.y && doc_y <= sc.bounds.y + sc.bounds.height) {
@@ -677,13 +1004,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     }
     if (!handled) {
       scroll_y -= (delta / 120) * SCROLL_STEP;
-      int content_h = browser_ui.content_height();
-      float total_h = global_layout_root
-                          ? global_layout_root->dimensions.content.height
-                          : (float)content_h;
-      if (scroll_y < 0) scroll_y = 0;
-      if (scroll_y > total_h - content_h)
-        scroll_y = (int)std::max(0.0f, total_h - content_h);
+      clamp_main_scroll();
     }
     InvalidateRect(hwnd, NULL, FALSE);
   } break;
@@ -693,16 +1014,63 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     browser_ui.on_key_down((int)wParam);
 
     if (GetKeyState(VK_CONTROL) & 0x8000) {
-      if (wParam == 'T') {
+      bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+      if (wParam == 'N' && shift) {
+        // Ctrl+Shift+N — toggle private / incognito browsing.
+        g_private_mode = !g_private_mode;
+        browser_ui.set_private_mode(g_private_mode);
+        browser_ui.set_status(g_private_mode
+                                  ? "Private browsing ON — cookies and cache "
+                                    "are not stored"
+                                  : "Private browsing OFF");
+        InvalidateRect(hwnd, NULL, FALSE);
+      } else if (wParam == VK_DELETE && shift) {
+        // Ctrl+Shift+Del — clear cookies + cache.
+        int n = clear_browsing_data();
+        browser_ui.set_status("Cleared browsing data (" + std::to_string(n) +
+                              " cache entries + cookies)");
+        InvalidateRect(hwnd, NULL, FALSE);
+      } else if (wParam == 'D' && shift) {
+        // Ctrl+Shift+D — toggle dark mode, then reload so media queries
+        // re-evaluate against the new prefers-color-scheme.
+        g_dark_mode = !g_dark_mode;
+        browser_ui.set_status(g_dark_mode ? "Dark mode ON" : "Dark mode OFF");
+        Tab *t = browser_ui.active_tab();
+        if (t && !t->url.empty()) navigate_to(t->url);
+        InvalidateRect(hwnd, NULL, FALSE);
+      } else if (wParam == 'T') {
         browser_ui.add_tab("", "New Tab");
         browser_ui.focus_address_bar();
         navigate_to("");
         InvalidateRect(hwnd, NULL, FALSE);
       } else if (wParam == 'W') {
+        Tab *closing = browser_ui.active_tab();
+        if (closing) drop_tab_page(closing->id);
         browser_ui.close_tab(browser_ui.active_tab_index());
         Tab *t = browser_ui.active_tab();
-        if (t) navigate_to(t->url);
+        if (t && !install_tab_page(t->id)) navigate_to(t->url);
         InvalidateRect(hwnd, NULL, FALSE);
+      } else if (wParam == 'D') {
+        // Ctrl+D — bookmark the current page.
+        Tab *t = browser_ui.active_tab();
+        if (t && !t->url.empty()) {
+          bool added = add_bookmark(t->url, t->title);
+          browser_ui.set_status(added ? "Bookmarked: " + t->url
+                                       : "Already bookmarked");
+          InvalidateRect(hwnd, NULL, FALSE);
+        }
+      } else if (wParam == 'H') {
+        // Ctrl+H — open history.
+        Tab *t = browser_ui.active_tab();
+        if (t) { t->push_url("about:history");
+                 browser_ui.set_address_text("about:history"); }
+        navigate_to("about:history");
+      } else if (wParam == 'B' && (GetKeyState(VK_SHIFT) & 0x8000)) {
+        // Ctrl+Shift+B — open bookmarks.
+        Tab *t = browser_ui.active_tab();
+        if (t) { t->push_url("about:bookmarks");
+                 browser_ui.set_address_text("about:bookmarks"); }
+        navigate_to("about:bookmarks");
       } else if (wParam == 'L') {
         browser_ui.focus_address_bar();
         InvalidateRect(hwnd, NULL, FALSE);
@@ -788,6 +1156,41 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       }
     }
 
+    // ── Keyboard scrolling ──
+    // Only when typing isn't being captured by the address bar / find bar /
+    // a focused <input>, and no Ctrl/Alt chord is active.
+    if (!browser_ui.is_address_focused() &&
+        !(GetKeyState(VK_CONTROL) & 0x8000) &&
+        !(GetKeyState(VK_MENU) & 0x8000)) {
+      bool text_capture =
+          g_find_bar_open ||
+          (focused_box && focused_box->style_node &&
+           focused_box->style_node->node &&
+           focused_box->style_node->node->data == "input");
+      int content_h = browser_ui.content_height();
+      int page_step = content_h > 60 ? content_h - 40 : content_h;
+      bool scrolled = false;
+      switch (wParam) {
+      case VK_DOWN:  scroll_y += SCROLL_STEP; scrolled = true; break;
+      case VK_UP:    scroll_y -= SCROLL_STEP; scrolled = true; break;
+      case VK_NEXT:  scroll_y += page_step;   scrolled = true; break;
+      case VK_PRIOR: scroll_y -= page_step;   scrolled = true; break;
+      case VK_HOME:  scroll_y = 0;            scrolled = true; break;
+      case VK_END:   scroll_y = (int)document_pixel_height(); scrolled = true; break;
+      case VK_SPACE:
+        if (!text_capture) {
+          scroll_y += (GetKeyState(VK_SHIFT) & 0x8000) ? -page_step : page_step;
+          scrolled = true;
+        }
+        break;
+      default: break;
+      }
+      if (scrolled) {
+        clamp_main_scroll();
+        InvalidateRect(hwnd, NULL, FALSE);
+      }
+    }
+
     if (wParam == VK_F5) {
       Tab *t = browser_ui.active_tab();
       if (t && !t->url.empty()) navigate_to(t->url);
@@ -861,21 +1264,43 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
     if (focused_box && focused_box->style_node &&
         focused_box->style_node->node &&
-        focused_box->style_node->node->data == "input") {
-      auto &val = focused_box->style_node->node->attributes["value"];
-      if (typed == '\b') {
-        if (!val.empty()) val.pop_back();
-      } else if (typed >= 32 && typed <= 126) {
-        val += typed;
-      } else if (typed == '\r') {
-        std::string nav_url = "https://google.com/search?q=" + val;
-        for (char &c : nav_url) if (c == ' ') c = '+';
-        Tab *tab = browser_ui.active_tab();
-        if (tab) {
-          tab->push_url(nav_url);
-          browser_ui.set_address_text(nav_url);
+        (focused_box->style_node->node->data == "input" ||
+         focused_box->style_node->node->data == "textarea")) {
+      auto node = focused_box->style_node->node;
+      bool is_textarea = (node->data == "textarea");
+
+      // <input> keeps its value in the value attribute; <textarea> keeps it
+      // in its inner text node (that's where paint reads it from).
+      std::string *val = nullptr;
+      if (is_textarea) {
+        std::shared_ptr<Node> text_child;
+        for (auto &c : node->children)
+          if (c->type == NodeType::Text) { text_child = c; break; }
+        if (!text_child) {
+          text_child = TextNode("");
+          node->append_child(text_child);
         }
-        navigate_to(nav_url);
+        val = &text_child->data;
+      } else {
+        val = &node->attributes["value"];
+      }
+
+      if (typed == '\b') {
+        if (!val->empty()) val->pop_back();
+      } else if (typed >= 32 && typed <= 126) {
+        *val += typed;
+      } else if (typed == '\r') {
+        // Enter submits the enclosing form; fall back to a web search
+        if (!submit_form_for_node(node) && !val->empty()) {
+          std::string nav_url =
+              "https://www.google.com/search?q=" + percent_encode_query(*val);
+          Tab *tab = browser_ui.active_tab();
+          if (tab) {
+            tab->push_url(nav_url);
+            browser_ui.set_address_text(nav_url);
+          }
+          navigate_to(nav_url);
+        }
       }
       if (global_layout_root) {
         master_display_list = build_display_list(global_layout_root);
@@ -999,7 +1424,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     break;
 
   case WM_USER + 3: {
-    // Page load complete — swap in new globals
+    // Page load complete — cache under its tab and install if active
     PageResult *pr = (PageResult *)wParam;
     if (!pr) {
       master_display_list.clear();
@@ -1011,25 +1436,59 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       break;
     }
 
-    g_dom_root          = pr->dom_root;
-    g_main_stylesheet   = std::move(pr->main_stylesheet);
-    g_hover_stylesheet  = std::move(pr->hover_stylesheet);
-    g_focus_stylesheet  = std::move(pr->focus_stylesheet);
-    global_layout_root  = pr->layout_root;
-    master_display_list = std::move(pr->display_list);
-    g_scroll_containers = std::move(pr->scroll_containers);
-    g_current_page_url  = pr->page_url;
-    g_raw_html_source   = std::move(pr->raw_html);
-    scroll_y            = 0;
-    focused_box         = nullptr;
-    has_selection        = false;
-    g_has_selection      = false;
+    Tab *active = browser_ui.active_tab();
+    int active_id = active ? active->id : -1;
+    int tid = (pr->tab_id >= 0) ? pr->tab_id : active_id;
 
-    Tab *tab = browser_ui.active_tab();
-    if (tab && !pr->page_title.empty())
-      tab->title = pr->page_title;
-    else if (tab && !pr->page_url.empty())
-      tab->title = pr->page_url;
+    // Destroy the tab's previous JS engine (safe here on the main thread;
+    // detach it from the global pointer first if it is the live engine)
+    auto old_it = g_tab_pages.find(tid);
+    if (old_it != g_tab_pages.end() && old_it->second.qjs_engine &&
+        old_it->second.qjs_engine != pr->qjs_engine) {
+      if (g_qjs_engine == old_it->second.qjs_engine)
+        g_qjs_engine = nullptr;
+      qjs_destroy(old_it->second.qjs_engine);
+      old_it->second.qjs_engine = nullptr;
+    }
+
+    TabPageState st;
+    st.dom_root          = pr->dom_root;
+    st.main_stylesheet   = std::move(pr->main_stylesheet);
+    st.hover_stylesheet  = std::move(pr->hover_stylesheet);
+    st.focus_stylesheet  = std::move(pr->focus_stylesheet);
+    st.layout_root       = pr->layout_root;
+    st.display_list      = std::move(pr->display_list);
+    st.scroll_containers = std::move(pr->scroll_containers);
+    st.page_url          = pr->page_url;
+    st.raw_html          = std::move(pr->raw_html);
+    st.scroll_y          = 0;
+    st.qjs_engine        = pr->qjs_engine;
+    st.security          = security_for(pr->page_url, pr->cert_error);
+    g_tab_pages[tid]     = std::move(st);
+
+    // Update the owning tab's title + URL (it may no longer be the active
+    // tab). pr->page_url is the FINAL url after any redirects, so this keeps
+    // the tab history and address bar honest about where we actually landed.
+    for (int i = 0; i < browser_ui.tab_count(); ++i) {
+      Tab *t = browser_ui.tab_at(i);
+      if (!t || t->id != tid) continue;
+      if (!pr->page_title.empty()) t->title = pr->page_title;
+      else if (!pr->page_url.empty()) t->title = pr->page_url;
+      if (!pr->page_url.empty() && pr->page_url != t->url) {
+        t->url = pr->page_url;
+        if (t->history_index >= 0 &&
+            t->history_index < (int)t->history.size())
+          t->history[t->history_index] = pr->page_url;
+      }
+      break;
+    }
+    bool url_is_final = (tid == active_id && !pr->page_url.empty());
+    std::string final_url = pr->page_url;
+
+    // Record successful loads in history (skipped for error pages and
+    // incognito — record_history() enforces the private-mode rule itself).
+    if (!pr->load_error)
+      record_history(pr->page_url, pr->page_title);
 
     if (!pr->img_urls.empty()) {
       ImgFetchParams *p = new ImgFetchParams();
@@ -1038,23 +1497,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       HANDLE ht = CreateThread(NULL, 0, fetch_images_thread, p, 0, NULL);
       if (ht) CloseHandle(ht);
     }
-
-    std::string status = pr->page_url.empty() ? "Ready" : pr->page_url;
     delete pr;
 
-    // Relayout with current viewport dimensions (page was laid out in background
-    // thread which may have used a different viewport width)
-    if (global_layout_root && buffer_width > 0) {
-      Dimensions viewport;
-      viewport.content.width  = (float)buffer_width / g_zoom_level;
-      viewport.content.height = 0.0f;
-      global_layout_root->layout(viewport);
-      master_display_list = build_display_list(global_layout_root);
-      rebuild_scroll_containers();
+    if (tid == active_id) {
+      // Force a fresh install even if this tab was already showing
+      g_installed_tab_id = -1;
+      install_tab_page(tid);
+      scroll_y = 0;
+      // Reflect the final (post-redirect) URL in the address bar, unless the
+      // user has since focused it to type something else.
+      if (url_is_final && !browser_ui.is_address_focused())
+        browser_ui.set_address_text(final_url);
     }
 
     browser_ui.set_loading(false);
-    browser_ui.set_status(status);
     InvalidateRect(hwnd, NULL, FALSE);
     break;
   }
@@ -1090,7 +1546,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
           if (cur->data == "a" && cur->attributes.count("href")) {
             is_link = true; link_url = cur->attributes["href"]; break;
           }
-          if (cur->data == "img" && cur->attributes.count("src")) {
+          if ((cur->data == "img" || cur->data == "svg") &&
+              cur->attributes.count("src")) {
             is_image = true; img_src = cur->attributes["src"];
           }
           cur = cur->parent.lock();
@@ -1101,9 +1558,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       if (is_link) {
         AppendMenuA(hMenu, MF_STRING, IDM_OPEN_LINK, "Open Link");
         AppendMenuA(hMenu, MF_STRING, IDM_COPY_LINK, "Copy Link Address");
+        AppendMenuA(hMenu, MF_STRING, IDM_SAVE_LINK, "Save Link As...");
       }
-      if (is_image)
+      if (is_image) {
         AppendMenuA(hMenu, MF_STRING, IDM_COPY_IMAGE, "Copy Image Address");
+        AppendMenuA(hMenu, MF_STRING, IDM_SAVE_IMAGE, "Save Image As...");
+      }
       AppendMenuA(hMenu, MF_SEPARATOR, 0, NULL);
       AppendMenuA(hMenu, MF_STRING, IDM_SELECT_ALL, "Select All\tCtrl+A");
       AppendMenuA(hMenu, MF_STRING, IDM_RELOAD, "Reload\tF5");
@@ -1139,9 +1599,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       break;
     case IDM_OPEN_LINK: {
       if (!s_ctx_link_url.empty()) {
-        Tab *t = browser_ui.active_tab();
-        if (t) { t->push_url(s_ctx_link_url); browser_ui.set_address_text(s_ctx_link_url); }
-        navigate_to(s_ctx_link_url);
+        std::string resolved = resolve_url(s_ctx_link_url, g_current_page_url);
+        if (is_content_navigation_allowed(resolved, g_current_page_url)) {
+          Tab *t = browser_ui.active_tab();
+          if (t) { t->push_url(resolved); browser_ui.set_address_text(resolved); }
+          navigate_to(resolved);
+        } else {
+          browser_ui.set_status("Blocked: " + resolved);
+        }
       }
       break;
     }
@@ -1173,6 +1638,24 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       }
       break;
     }
+    case IDM_SAVE_LINK: {
+      if (!s_ctx_link_url.empty())
+        start_download(resolve_url(s_ctx_link_url, g_current_page_url));
+      break;
+    }
+    case IDM_SAVE_IMAGE: {
+      if (!s_ctx_img_src.empty()) {
+        std::string u = s_ctx_img_src;
+        // Rasterized SVGs carry a __svg_ cache key, not a real URL — skip.
+        if (u.substr(0, 6) != "__svg_")
+          start_download(u.substr(0, 5) == "data:"
+                             ? u
+                             : resolve_url(u, g_current_page_url));
+        else
+          browser_ui.set_status("Cannot save inline SVG");
+      }
+      break;
+    }
     case IDM_RELOAD: {
       Tab *t = browser_ui.active_tab();
       if (t && !t->url.empty()) navigate_to(t->url);
@@ -1184,6 +1667,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     }
     }
   } break;
+
+  case WM_USER + 5:
+    // A download finished (status already updated) — repaint status bar.
+    InvalidateRect(hwnd, NULL, FALSE);
+    break;
 
   case WM_SETCURSOR:
     if (LOWORD(lParam) == HTCLIENT) return TRUE;
@@ -1201,6 +1689,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
   freopen("out.txt", "w", stderr);
 
   std::cout << "--- Scratch Browser Engine v47 initializing ---\n";
+
 
   const char CLASS_NAME[] = "ScratchBrowserWindowClass";
   WNDCLASSA wc = {};
@@ -1234,6 +1723,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
   browser_ui.set_navigate_callback([](const std::string &url) {
     navigate_to(url);
+  });
+
+  browser_ui.set_tab_switch_callback([](int tab_id) {
+    if (!install_tab_page(tab_id)) {
+      // No cached page for this tab — load its URL (or the homepage)
+      Tab *t = browser_ui.active_tab();
+      navigate_to(t ? t->url : "");
+    }
+    InvalidateRect(g_hwnd, NULL, FALSE);
+  });
+
+  browser_ui.set_tab_close_callback([](int tab_id) {
+    drop_tab_page(tab_id);
   });
 
   buffer_width  = browser_ui.content_width();
@@ -1272,7 +1774,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     if (g_viewport_height < 600) g_viewport_height = 600;
   }
 
+  // Parse the command line: optional --incognito/--private flag plus a URL.
   std::string cmdLine(pCmdLine);
+  {
+    auto strip_flag = [&](const std::string &flag) {
+      size_t p = cmdLine.find(flag);
+      if (p == std::string::npos) return false;
+      cmdLine.erase(p, flag.size());
+      return true;
+    };
+    bool incog = strip_flag("--incognito") | strip_flag("--private") |
+                 strip_flag("-incognito") | strip_flag("-private");
+    if (incog) {
+      g_private_mode = true;
+      browser_ui.set_private_mode(true);
+      browser_ui.set_status("Private browsing ON");
+    }
+    if (strip_flag("--dark") | strip_flag("-dark")) g_dark_mode = true;
+    // Trim surrounding whitespace left by flag removal.
+    size_t b = cmdLine.find_first_not_of(" \t");
+    size_t e = cmdLine.find_last_not_of(" \t");
+    cmdLine = (b == std::string::npos) ? "" : cmdLine.substr(b, e - b + 1);
+  }
   if (!cmdLine.empty()) {
     Tab *tab = browser_ui.active_tab();
     if (tab) tab->push_url(cmdLine);

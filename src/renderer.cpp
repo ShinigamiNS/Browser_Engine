@@ -384,8 +384,9 @@ void render_frame(HWND hwnd, HDC mem_dc, int win_w, int win_h,
   if (!app_initialized || !buffer_memory || buffer_width <= 0 || buffer_height <= 0)
     return;
 
-  // Clear pixel buffer to white
-  uint32_t bg_color = 0x00FFFFFF;
+  // Clear pixel buffer to the page's canvas background (root/body bg color)
+  extern uint32_t g_canvas_bg_color;
+  uint32_t bg_color = g_canvas_bg_color;
   uint32_t *pixel = (uint32_t *)buffer_memory;
   int total_pixels = buffer_width * buffer_height;
   for (int i = 0; i < total_pixels; ++i)
@@ -744,8 +745,7 @@ void render_frame(HWND hwnd, HDC mem_dc, int win_w, int win_h,
     if (!box || !box->style_node || !box->style_node->node) return;
     bool is_fixed_box = box->style_node->value("position") == "fixed";
     if (is_fixed_box != want_fixed) return;
-    if (box->style_node->node->type != NodeType::Element ||
-        box->style_node->node->data != "img") return;
+    if (!is_image_element(*box->style_node->node)) return;
     auto &attrs = box->style_node->node->attributes;
     std::string chosen_src;
     auto ss_it = attrs.find("srcset");

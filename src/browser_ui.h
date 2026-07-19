@@ -86,6 +86,8 @@ enum class UIHitResult {
 //  Callback types for communicating with main
 // ──────────────────────────────────────────────
 using NavigateCallback = std::function<void(const std::string &url)>;
+using TabSwitchCallback = std::function<void(int tab_id)>;
+using TabCloseCallback = std::function<void(int tab_id)>;
 
 // ──────────────────────────────────────────────
 //  Color palette for the chrome
@@ -194,12 +196,24 @@ public:
   // ── Status bar ──
   void set_status(const std::string &text) { status_text_ = text; }
 
+  // ── Security / privacy indicators ──
+  enum class SecurityLevel { None, Secure, Insecure, Local, Danger };
+  void set_security_level(SecurityLevel lvl) { security_level_ = lvl; }
+  SecurityLevel security_level() const { return security_level_; }
+  void set_private_mode(bool on) { private_mode_ = on; }
+  bool private_mode() const { return private_mode_; }
+
   // ── Navigation state ──
   void set_loading(bool loading) { is_loading_ = loading; }
   bool is_loading() const { return is_loading_; }
 
   // ── Callbacks ──
   void set_navigate_callback(NavigateCallback cb) { on_navigate_ = cb; }
+  // Fired after the active tab changes (click, close, new tab) so main can
+  // swap in that tab's cached page state.
+  void set_tab_switch_callback(TabSwitchCallback cb) { on_tab_switch_ = cb; }
+  // Fired right before a tab is destroyed so main can free its page state.
+  void set_tab_close_callback(TabCloseCallback cb) { on_tab_close_ = cb; }
 
   // ── Accessors ──
   int content_y() const { return CHROME_HEIGHT; }
@@ -254,11 +268,17 @@ private:
   std::string status_text_ = "Ready";
   bool is_loading_ = false;
 
+  // Security / privacy state
+  SecurityLevel security_level_ = SecurityLevel::None;
+  bool private_mode_ = false;
+
   // Colors
   UIColors colors_;
 
   // Callbacks
   NavigateCallback on_navigate_;
+  TabSwitchCallback on_tab_switch_;
+  TabCloseCallback on_tab_close_;
 
   // GDI resources (cached)
   HFONT font_tab_ = nullptr;

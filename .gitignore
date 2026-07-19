@@ -14,6 +14,11 @@ debug_render.log
 layout_debug.log
 stderr.log
 
+# Runtime browser data (history/bookmarks/storage written next to the exe)
+browser_history.txt
+browser_bookmarks.txt
+browser_storage/
+
 # Archives
 *.zip
 *.tar.gz

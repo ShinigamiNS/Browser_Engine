@@ -4,6 +4,7 @@
 
 #include "quickjs_adapter.h"
 #include "dom.h"
+#include "net.h"
 
 extern "C" {
 #include "quickjs.h"
@@ -12,11 +13,18 @@ extern "C" {
 #include <string>
 #include <memory>
 #include <functional>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <algorithm>
 #include <chrono>
 #include <windows.h>
+#include <wininet.h>
+
+// URL utilities from page_loader.cpp (declared here to avoid header cycles)
+std::string resolve_url(const std::string &src, const std::string &page_url);
+std::string percent_encode_query(const std::string &s);
+std::string percent_decode(const std::string &s);
 
 // ── Per-eval execution deadline (used by interrupt handler) ────────────────
 static thread_local std::chrono::steady_clock::time_point g_js_deadline;
@@ -49,8 +57,12 @@ struct QJSEngine {
     // Layout query callback (for getBoundingClientRect)
     std::function<bool(Node*, DOMRect&)> layout_cb;
 
-    // localStorage in-memory store
+    // localStorage (persisted per-origin) and sessionStorage (memory-only)
     std::map<std::string, std::string> local_storage;
+    std::map<std::string, std::string> session_storage;
+    std::string storage_file; // set from page_url; empty = no persistence
+    // In-memory cookie jar used in private mode (name -> value)
+    std::map<std::string, std::string> private_cookies;
 
     // Pending setTimeout/setInterval callbacks (fired by qjs_run_pending_timers)
     struct PendingTimer {
@@ -74,6 +86,120 @@ static std::string js_to_string(JSContext *ctx, JSValue val) {
 
 static JSValue js_from_string(JSContext *ctx, const std::string& s) {
     return JS_NewStringLen(ctx, s.c_str(), s.size());
+}
+
+// ── Web storage persistence ────────────────────────────────────────────────
+// localStorage is persisted per-origin as percent-encoded key\tvalue lines in
+// browser_storage\<host>.txt next to the exe. Skipped in private mode.
+
+static std::string url_host(const std::string &url) {
+    size_t s = url.find("://");
+    if (s == std::string::npos) return "";
+    s += 3;
+    size_t e = url.find_first_of("/:?#", s);
+    std::string host = (e == std::string::npos) ? url.substr(s)
+                                                : url.substr(s, e - s);
+    for (auto &c : host) c = (char)tolower((unsigned char)c);
+    return host;
+}
+
+static std::string storage_file_for(const std::string &page_url) {
+    if (g_private_mode) return "";
+    std::string host = url_host(page_url);
+    if (host.empty()) return "";
+    // Sanitize (hosts are already [a-z0-9.-] but be safe)
+    for (auto &c : host)
+        if (!isalnum((unsigned char)c) && c != '.' && c != '-') c = '_';
+    CreateDirectoryA("browser_storage", NULL);
+    return "browser_storage\\" + host + ".txt";
+}
+
+static void load_local_storage(QJSEngine *engine) {
+    engine->local_storage.clear();
+    if (engine->storage_file.empty()) return;
+    std::ifstream f(engine->storage_file);
+    if (!f.is_open()) return;
+    std::string line;
+    while (std::getline(f, line)) {
+        size_t tab = line.find('\t');
+        if (tab == std::string::npos) continue;
+        engine->local_storage[percent_decode(line.substr(0, tab))] =
+            percent_decode(line.substr(tab + 1));
+    }
+}
+
+static void save_local_storage(QJSEngine *engine) {
+    if (engine->storage_file.empty()) return;
+    std::ofstream f(engine->storage_file, std::ios::trunc);
+    if (!f.is_open()) return;
+    for (const auto &kv : engine->local_storage)
+        f << percent_encode_query(kv.first) << '\t'
+          << percent_encode_query(kv.second) << '\n';
+}
+
+// ── Promise / fetch helpers ────────────────────────────────────────────────
+
+// Build a real, already-settled Promise (resolved when ok, else rejected).
+static JSValue make_settled_promise(JSContext *ctx, JSValue value, bool ok) {
+    JSValue funcs[2];
+    JSValue promise = JS_NewPromiseCapability(ctx, funcs);
+    if (JS_IsException(promise)) { JS_FreeValue(ctx, value); return promise; }
+    JSValue ret = JS_Call(ctx, funcs[ok ? 0 : 1], JS_UNDEFINED, 1, &value);
+    JS_FreeValue(ctx, ret);
+    JS_FreeValue(ctx, value);
+    JS_FreeValue(ctx, funcs[0]);
+    JS_FreeValue(ctx, funcs[1]);
+    return promise;
+}
+
+// Resolve a request URL against the page and enforce the scheme allow-list:
+// script-initiated requests may only target http(s).
+static bool script_fetch_url(QJSEngine *eng, std::string &url) {
+    if (!eng) return false;
+    url = resolve_url(url, eng->page_url);
+    return url.rfind("https://", 0) == 0 || url.rfind("http://", 0) == 0;
+}
+
+// Get the engine pointer stashed on the global object.
+static QJSEngine *engine_from_global(JSContext *c) {
+    JSValue g = JS_GetGlobalObject(c);
+    JSValue ep = JS_GetPropertyStr(c, g, "_engine");
+    int64_t p = 0;
+    JS_ToInt64(c, &p, ep);
+    JS_FreeValue(c, ep);
+    JS_FreeValue(c, g);
+    return reinterpret_cast<QJSEngine *>((uintptr_t)p);
+}
+
+// Build a fetch() Response object for an HttpResponse.
+static JSValue make_response_obj(JSContext *c, const HttpResponse &r) {
+    JSValue resp = JS_NewObject(c);
+    JS_SetPropertyStr(c, resp, "ok",
+                      JS_NewBool(c, r.ok && r.status_code >= 200 &&
+                                        r.status_code < 300));
+    JS_SetPropertyStr(c, resp, "status", JS_NewInt32(c, (int)r.status_code));
+    JS_SetPropertyStr(c, resp, "url", js_from_string(c, r.final_url));
+    JS_SetPropertyStr(c, resp, "_body", js_from_string(c, r.body));
+    JS_SetPropertyStr(c, resp, "text",
+        JS_NewCFunction(c, [](JSContext *c2, JSValue tv, int, JSValue *) -> JSValue {
+            JSValue b = JS_GetPropertyStr(c2, tv, "_body");
+            return make_settled_promise(c2, b, true);
+        }, "text", 0));
+    JS_SetPropertyStr(c, resp, "json",
+        JS_NewCFunction(c, [](JSContext *c2, JSValue tv, int, JSValue *) -> JSValue {
+            JSValue b = JS_GetPropertyStr(c2, tv, "_body");
+            size_t len; const char *s = JS_ToCStringLen(c2, &len, b);
+            JSValue parsed = s ? JS_ParseJSON(c2, s, len, "<fetch-json>")
+                               : JS_EXCEPTION;
+            if (s) JS_FreeCString(c2, s);
+            JS_FreeValue(c2, b);
+            if (JS_IsException(parsed)) {
+                JSValue ex = JS_GetException(c2);
+                return make_settled_promise(c2, ex, false);
+            }
+            return make_settled_promise(c2, parsed, true);
+        }, "json", 0));
+    return resp;
 }
 
 // ── Node → JSValue wrapping ────────────────────────────────────────────────
@@ -1597,51 +1723,70 @@ static void setup_globals(JSContext *ctx, QJSEngine *engine) {
         JS_SetPropertyStr(ctx, global, "history", hist);
     }
 
-    // localStorage
+    // localStorage (persisted per-origin) + sessionStorage (memory-only,
+    // its own map — previously it aliased localStorage, which is wrong)
     {
-        auto *eng_ptr = engine;
-        JSValue ls = JS_NewObject(ctx);
-        JS_SetPropertyStr(ctx, ls, "_ep",
-            JS_NewInt64(ctx, (int64_t)(uintptr_t)engine));
-        JS_SetPropertyStr(ctx, ls, "getItem",
-            JS_NewCFunction(ctx, [](JSContext *c, JSValue tv, int ac, JSValue *av) -> JSValue {
-                JSValue ep = JS_GetPropertyStr(c, tv, "_ep");
-                int64_t ei = 0; JS_ToInt64(c, &ei, ep); JS_FreeValue(c, ep);
-                QJSEngine *eng = reinterpret_cast<QJSEngine*>((uintptr_t)ei);
-                if (!eng || ac < 1) return JS_NULL;
-                std::string key = js_to_string(c, av[0]);
-                auto it = eng->local_storage.find(key);
-                return it != eng->local_storage.end() ? js_from_string(c, it->second) : JS_NULL;
-            }, "getItem", 1));
-        JS_SetPropertyStr(ctx, ls, "setItem",
-            JS_NewCFunction(ctx, [](JSContext *c, JSValue tv, int ac, JSValue *av) -> JSValue {
-                JSValue ep = JS_GetPropertyStr(c, tv, "_ep");
-                int64_t ei = 0; JS_ToInt64(c, &ei, ep); JS_FreeValue(c, ep);
-                QJSEngine *eng = reinterpret_cast<QJSEngine*>((uintptr_t)ei);
-                if (!eng || ac < 2) return JS_UNDEFINED;
-                eng->local_storage[js_to_string(c, av[0])] = js_to_string(c, av[1]);
-                return JS_UNDEFINED;
-            }, "setItem", 2));
-        JS_SetPropertyStr(ctx, ls, "removeItem",
-            JS_NewCFunction(ctx, [](JSContext *c, JSValue tv, int ac, JSValue *av) -> JSValue {
-                JSValue ep = JS_GetPropertyStr(c, tv, "_ep");
-                int64_t ei = 0; JS_ToInt64(c, &ei, ep); JS_FreeValue(c, ep);
-                QJSEngine *eng = reinterpret_cast<QJSEngine*>((uintptr_t)ei);
-                if (!eng || ac < 1) return JS_UNDEFINED;
-                eng->local_storage.erase(js_to_string(c, av[0]));
-                return JS_UNDEFINED;
-            }, "removeItem", 1));
-        JS_SetPropertyStr(ctx, ls, "clear",
-            JS_NewCFunction(ctx, [](JSContext *c, JSValue tv, int, JSValue*) -> JSValue {
-                JSValue ep = JS_GetPropertyStr(c, tv, "_ep");
-                int64_t ei = 0; JS_ToInt64(c, &ei, ep); JS_FreeValue(c, ep);
-                QJSEngine *eng = reinterpret_cast<QJSEngine*>((uintptr_t)ei);
-                if (eng) eng->local_storage.clear();
-                return JS_UNDEFINED;
-            }, "clear", 0));
-        JS_SetPropertyStr(ctx, global, "localStorage",  ls);
-        JS_SetPropertyStr(ctx, global, "sessionStorage", JS_DupValue(ctx, ls));
-        (void)eng_ptr;
+        auto make_storage = [&](bool session) -> JSValue {
+            JSValue st = JS_NewObject(ctx);
+            JS_SetPropertyStr(ctx, st, "_ep",
+                JS_NewInt64(ctx, (int64_t)(uintptr_t)engine));
+            JS_SetPropertyStr(ctx, st, "_ss", JS_NewInt32(ctx, session ? 1 : 0));
+            // Helper used by all four methods below
+            // (engine + which-map resolved from properties on `this`)
+            JS_SetPropertyStr(ctx, st, "getItem",
+                JS_NewCFunction(ctx, [](JSContext *c, JSValue tv, int ac, JSValue *av) -> JSValue {
+                    JSValue ep = JS_GetPropertyStr(c, tv, "_ep");
+                    int64_t ei = 0; JS_ToInt64(c, &ei, ep); JS_FreeValue(c, ep);
+                    JSValue sv = JS_GetPropertyStr(c, tv, "_ss");
+                    int32_t ss = 0; JS_ToInt32(c, &ss, sv); JS_FreeValue(c, sv);
+                    QJSEngine *eng = reinterpret_cast<QJSEngine*>((uintptr_t)ei);
+                    if (!eng || ac < 1) return JS_NULL;
+                    auto &map = ss ? eng->session_storage : eng->local_storage;
+                    auto it = map.find(js_to_string(c, av[0]));
+                    return it != map.end() ? js_from_string(c, it->second) : JS_NULL;
+                }, "getItem", 1));
+            JS_SetPropertyStr(ctx, st, "setItem",
+                JS_NewCFunction(ctx, [](JSContext *c, JSValue tv, int ac, JSValue *av) -> JSValue {
+                    JSValue ep = JS_GetPropertyStr(c, tv, "_ep");
+                    int64_t ei = 0; JS_ToInt64(c, &ei, ep); JS_FreeValue(c, ep);
+                    JSValue sv = JS_GetPropertyStr(c, tv, "_ss");
+                    int32_t ss = 0; JS_ToInt32(c, &ss, sv); JS_FreeValue(c, sv);
+                    QJSEngine *eng = reinterpret_cast<QJSEngine*>((uintptr_t)ei);
+                    if (!eng || ac < 2) return JS_UNDEFINED;
+                    auto &map = ss ? eng->session_storage : eng->local_storage;
+                    map[js_to_string(c, av[0])] = js_to_string(c, av[1]);
+                    if (!ss) save_local_storage(eng);
+                    return JS_UNDEFINED;
+                }, "setItem", 2));
+            JS_SetPropertyStr(ctx, st, "removeItem",
+                JS_NewCFunction(ctx, [](JSContext *c, JSValue tv, int ac, JSValue *av) -> JSValue {
+                    JSValue ep = JS_GetPropertyStr(c, tv, "_ep");
+                    int64_t ei = 0; JS_ToInt64(c, &ei, ep); JS_FreeValue(c, ep);
+                    JSValue sv = JS_GetPropertyStr(c, tv, "_ss");
+                    int32_t ss = 0; JS_ToInt32(c, &ss, sv); JS_FreeValue(c, sv);
+                    QJSEngine *eng = reinterpret_cast<QJSEngine*>((uintptr_t)ei);
+                    if (!eng || ac < 1) return JS_UNDEFINED;
+                    auto &map = ss ? eng->session_storage : eng->local_storage;
+                    map.erase(js_to_string(c, av[0]));
+                    if (!ss) save_local_storage(eng);
+                    return JS_UNDEFINED;
+                }, "removeItem", 1));
+            JS_SetPropertyStr(ctx, st, "clear",
+                JS_NewCFunction(ctx, [](JSContext *c, JSValue tv, int, JSValue*) -> JSValue {
+                    JSValue ep = JS_GetPropertyStr(c, tv, "_ep");
+                    int64_t ei = 0; JS_ToInt64(c, &ei, ep); JS_FreeValue(c, ep);
+                    JSValue sv = JS_GetPropertyStr(c, tv, "_ss");
+                    int32_t ss = 0; JS_ToInt32(c, &ss, sv); JS_FreeValue(c, sv);
+                    QJSEngine *eng = reinterpret_cast<QJSEngine*>((uintptr_t)ei);
+                    if (!eng) return JS_UNDEFINED;
+                    (ss ? eng->session_storage : eng->local_storage).clear();
+                    if (!ss) save_local_storage(eng);
+                    return JS_UNDEFINED;
+                }, "clear", 0));
+            return st;
+        };
+        JS_SetPropertyStr(ctx, global, "localStorage",   make_storage(false));
+        JS_SetPropertyStr(ctx, global, "sessionStorage", make_storage(true));
     }
 
     // MutationObserver stub
@@ -1686,6 +1831,9 @@ static void setup_globals(JSContext *ctx, QJSEngine *engine) {
 
     // window = global
     JS_SetPropertyStr(ctx, global, "window", JS_DupValue(ctx, global));
+    // Engine pointer for C callbacks that only receive the context (fetch/XHR)
+    JS_SetPropertyStr(ctx, global, "_engine",
+                      JS_NewInt64(ctx, (int64_t)(uintptr_t)engine));
 
     // document
     JSValue document = JS_NewObject(ctx);
@@ -1940,18 +2088,90 @@ static void setup_globals(JSContext *ctx, QJSEngine *engine) {
         JS_SetPropertyStr(ctx, global, "performance", perf);
     }
 
-    // XMLHttpRequest stub — callable with 'new'
+    // XMLHttpRequest — real implementation. send() performs the request
+    // synchronously via http_fetch, then fires onreadystatechange/onload (or
+    // onerror) plus any addEventListener("load"/"error") callbacks.
     {
-        // Use JS_NewCFunction2 with JS_CFUNC_constructor so 'new XHR()' works
         JSValue xhr_ctor = JS_NewCFunction2(ctx,
             [](JSContext *c, JSValue this_val, int, JSValue*) -> JSValue {
-                // When called with 'new', populate 'this' directly
                 JSValue xhr = JS_IsUndefined(this_val) ? JS_NewObject(c) : JS_DupValue(c, this_val);
                 JS_SetPropertyStr(c, xhr, "open",
-                    JS_NewCFunction(c, [](JSContext*, JSValue, int, JSValue*) -> JSValue {
+                    JS_NewCFunction(c, [](JSContext *c2, JSValue tv, int ac, JSValue *av) -> JSValue {
+                        if (ac >= 2) {
+                            std::string m = js_to_string(c2, av[0]);
+                            for (auto &ch : m) ch = (char)toupper((unsigned char)ch);
+                            JS_SetPropertyStr(c2, tv, "_method", js_from_string(c2, m));
+                            JS_SetPropertyStr(c2, tv, "_url", JS_DupValue(c2, av[1]));
+                            JS_SetPropertyStr(c2, tv, "readyState", JS_NewInt32(c2, 1));
+                        }
                         return JS_UNDEFINED; }, "open", 3));
                 JS_SetPropertyStr(c, xhr, "send",
-                    JS_NewCFunction(c, [](JSContext*, JSValue, int, JSValue*) -> JSValue {
+                    JS_NewCFunction(c, [](JSContext *c2, JSValue tv, int ac, JSValue *av) -> JSValue {
+                        QJSEngine *eng = engine_from_global(c2);
+                        JSValue uv = JS_GetPropertyStr(c2, tv, "_url");
+                        std::string url = js_to_string(c2, uv);
+                        JS_FreeValue(c2, uv);
+                        JSValue mv = JS_GetPropertyStr(c2, tv, "_method");
+                        std::string method = js_to_string(c2, mv);
+                        JS_FreeValue(c2, mv);
+                        if (method != "POST") method = "GET";
+                        std::string body;
+                        if (ac >= 1 && !JS_IsUndefined(av[0]) && !JS_IsNull(av[0]))
+                            body = js_to_string(c2, av[0]);
+                        bool failed = true;
+                        if (eng && script_fetch_url(eng, url)) {
+                            HttpResponse r = http_fetch(url, method, body,
+                                                        g_private_mode);
+                            if (r.ok) {
+                                failed = false;
+                                JS_SetPropertyStr(c2, tv, "status",
+                                    JS_NewInt32(c2, (int)r.status_code));
+                                JS_SetPropertyStr(c2, tv, "responseText",
+                                    js_from_string(c2, r.body));
+                                JS_SetPropertyStr(c2, tv, "response",
+                                    js_from_string(c2, r.body));
+                                JS_SetPropertyStr(c2, tv, "responseURL",
+                                    js_from_string(c2, r.final_url));
+                            }
+                        } else {
+                            std::cerr << "[XHR] blocked non-http(s) URL: "
+                                      << url << "\n";
+                        }
+                        JS_SetPropertyStr(c2, tv, "readyState", JS_NewInt32(c2, 4));
+                        // Fire handlers: onreadystatechange, then onload/onerror
+                        auto fire = [&](const char *prop) {
+                            JSValue fn = JS_GetPropertyStr(c2, tv, prop);
+                            if (JS_IsFunction(c2, fn)) {
+                                JSValue ret = JS_Call(c2, fn, tv, 0, nullptr);
+                                JS_FreeValue(c2, ret);
+                            }
+                            JS_FreeValue(c2, fn);
+                        };
+                        auto fire_listeners = [&](const char *prop) {
+                            JSValue arr = JS_GetPropertyStr(c2, tv, prop);
+                            if (JS_IsObject(arr)) {
+                                JSValue lenv = JS_GetPropertyStr(c2, arr, "length");
+                                int64_t n = 0; JS_ToInt64(c2, &n, lenv);
+                                JS_FreeValue(c2, lenv);
+                                for (int64_t i = 0; i < n; i++) {
+                                    JSValue fn = JS_GetPropertyUint32(c2, arr, (uint32_t)i);
+                                    if (JS_IsFunction(c2, fn)) {
+                                        JSValue ret = JS_Call(c2, fn, tv, 0, nullptr);
+                                        JS_FreeValue(c2, ret);
+                                    }
+                                    JS_FreeValue(c2, fn);
+                                }
+                            }
+                            JS_FreeValue(c2, arr);
+                        };
+                        fire("onreadystatechange");
+                        if (failed) {
+                            fire("onerror");
+                            fire_listeners("_ls_error");
+                        } else {
+                            fire("onload");
+                            fire_listeners("_ls_load");
+                        }
                         return JS_UNDEFINED; }, "send", 1));
                 JS_SetPropertyStr(c, xhr, "abort",
                     JS_NewCFunction(c, [](JSContext*, JSValue, int, JSValue*) -> JSValue {
@@ -1959,8 +2179,25 @@ static void setup_globals(JSContext *ctx, QJSEngine *engine) {
                 JS_SetPropertyStr(c, xhr, "setRequestHeader",
                     JS_NewCFunction(c, [](JSContext*, JSValue, int, JSValue*) -> JSValue {
                         return JS_UNDEFINED; }, "setRequestHeader", 2));
+                JS_SetPropertyStr(c, xhr, "getAllResponseHeaders",
+                    JS_NewCFunction(c, [](JSContext *c2, JSValue, int, JSValue*) -> JSValue {
+                        return JS_NewString(c2, ""); }, "getAllResponseHeaders", 0));
                 JS_SetPropertyStr(c, xhr, "addEventListener",
-                    JS_NewCFunction(c, [](JSContext*, JSValue, int, JSValue*) -> JSValue {
+                    JS_NewCFunction(c, [](JSContext *c2, JSValue tv, int ac, JSValue *av) -> JSValue {
+                        if (ac < 2 || !JS_IsFunction(c2, av[1])) return JS_UNDEFINED;
+                        std::string type = js_to_string(c2, av[0]);
+                        std::string prop = (type == "error") ? "_ls_error" : "_ls_load";
+                        JSValue arr = JS_GetPropertyStr(c2, tv, prop.c_str());
+                        if (!JS_IsObject(arr)) {
+                            JS_FreeValue(c2, arr);
+                            arr = JS_NewArray(c2);
+                            JS_SetPropertyStr(c2, tv, prop.c_str(), JS_DupValue(c2, arr));
+                        }
+                        JSValue lenv = JS_GetPropertyStr(c2, arr, "length");
+                        int64_t n = 0; JS_ToInt64(c2, &n, lenv);
+                        JS_FreeValue(c2, lenv);
+                        JS_SetPropertyUint32(c2, arr, (uint32_t)n, JS_DupValue(c2, av[1]));
+                        JS_FreeValue(c2, arr);
                         return JS_UNDEFINED; }, "addEventListener", 2));
                 JS_SetPropertyStr(c, xhr, "readyState",   JS_NewInt32(c, 0));
                 JS_SetPropertyStr(c, xhr, "status",       JS_NewInt32(c, 0));
@@ -1974,25 +2211,94 @@ static void setup_globals(JSContext *ctx, QJSEngine *engine) {
         JS_SetPropertyStr(ctx, global, "XMLHttpRequest", xhr_ctor);
     }
 
-    // fetch stub — returns a Promise-like object that never resolves
+    // fetch() — real implementation backed by http_fetch. The request runs
+    // synchronously (single-threaded engine) and returns an already-settled
+    // real Promise, so .then/.catch/await all behave correctly.
     JS_SetPropertyStr(ctx, global, "fetch",
-        JS_NewCFunction(ctx, [](JSContext *c, JSValue, int, JSValue*) -> JSValue {
-            // Return a simple object with .then() / .catch() no-ops
-            JSValue p = JS_NewObject(c);
-            JS_SetPropertyStr(c, p, "then",
-                JS_NewCFunction(c, [](JSContext *c2, JSValue, int, JSValue*) -> JSValue {
-                    JSValue p2 = JS_NewObject(c2);
-                    JS_SetPropertyStr(c2, p2, "catch",
-                        JS_NewCFunction(c2, [](JSContext *c3, JSValue, int, JSValue*)
-                                        -> JSValue { return JS_UNDEFINED; },
-                                        "catch", 1));
-                    return p2;
-                }, "then", 1));
-            JS_SetPropertyStr(c, p, "catch",
-                JS_NewCFunction(c, [](JSContext*, JSValue, int, JSValue*) -> JSValue {
-                    return JS_UNDEFINED; }, "catch", 1));
-            return p;
-        }, "fetch", 1));
+        JS_NewCFunction(ctx, [](JSContext *c, JSValue, int ac, JSValue *av) -> JSValue {
+            QJSEngine *eng = engine_from_global(c);
+            if (!eng || ac < 1)
+                return make_settled_promise(c,
+                    js_from_string(c, "TypeError: fetch requires a URL"), false);
+            std::string url = js_to_string(c, av[0]);
+            std::string method = "GET", body;
+            if (ac >= 2 && JS_IsObject(av[1])) {
+                JSValue m = JS_GetPropertyStr(c, av[1], "method");
+                if (!JS_IsUndefined(m) && !JS_IsNull(m)) {
+                    method = js_to_string(c, m);
+                    for (auto &ch : method) ch = (char)toupper((unsigned char)ch);
+                }
+                JS_FreeValue(c, m);
+                JSValue b = JS_GetPropertyStr(c, av[1], "body");
+                if (!JS_IsUndefined(b) && !JS_IsNull(b))
+                    body = js_to_string(c, b);
+                JS_FreeValue(c, b);
+            }
+            if (!script_fetch_url(eng, url)) {
+                std::cerr << "[fetch] blocked non-http(s) URL: " << url << "\n";
+                return make_settled_promise(c,
+                    js_from_string(c, "TypeError: fetch blocked for this URL"),
+                    false);
+            }
+            if (method != "GET" && method != "POST") method = "GET";
+            HttpResponse r = http_fetch(url, method, body, g_private_mode);
+            if (!r.ok)
+                return make_settled_promise(c,
+                    js_from_string(c, "TypeError: failed to fetch (" +
+                                          (r.error.empty() ? "network" : r.error) +
+                                          ")"),
+                    false);
+            return make_settled_promise(c, make_response_obj(c, r), true);
+        }, "fetch", 2));
+
+    // document.cookie — backed by the WinINet cookie jar (same cookies the
+    // network layer sends), or an in-memory map in private mode.
+    {
+        JSValue cookie_get = JS_NewCFunction(ctx,
+            [](JSContext *c, JSValue, int, JSValue*) -> JSValue {
+                QJSEngine *eng = engine_from_global(c);
+                if (!eng) return JS_NewString(c, "");
+                if (g_private_mode) {
+                    std::string out;
+                    for (auto &kv : eng->private_cookies) {
+                        if (!out.empty()) out += "; ";
+                        out += kv.first + "=" + kv.second;
+                    }
+                    return js_from_string(c, out);
+                }
+                char buf[4096];
+                DWORD len = sizeof(buf);
+                if (InternetGetCookieA(eng->page_url.c_str(), NULL, buf, &len) &&
+                    len > 0)
+                    return JS_NewStringLen(c, buf, len && buf[len-1]=='\0' ? len-1 : len);
+                return JS_NewString(c, "");
+            }, "get cookie", 0);
+        JSValue cookie_set = JS_NewCFunction(ctx,
+            [](JSContext *c, JSValue, int ac, JSValue *av) -> JSValue {
+                QJSEngine *eng = engine_from_global(c);
+                if (!eng || ac < 1) return JS_UNDEFINED;
+                std::string s = js_to_string(c, av[0]);
+                if (g_private_mode) {
+                    // Store just name=value (strip attributes)
+                    size_t semi = s.find(';');
+                    std::string pair = (semi == std::string::npos) ? s : s.substr(0, semi);
+                    size_t eq = pair.find('=');
+                    if (eq != std::string::npos) {
+                        std::string name = pair.substr(0, eq);
+                        std::string val  = pair.substr(eq + 1);
+                        while (!name.empty() && name.front() == ' ') name.erase(0, 1);
+                        eng->private_cookies[name] = val;
+                    }
+                } else {
+                    InternetSetCookieA(eng->page_url.c_str(), NULL, s.c_str());
+                }
+                return JS_UNDEFINED;
+            }, "set cookie", 1);
+        JSAtom cookie_atom = JS_NewAtom(ctx, "cookie");
+        JS_DefinePropertyGetSet(ctx, document, cookie_atom, cookie_get,
+                                cookie_set, JS_PROP_C_W_E);
+        JS_FreeAtom(ctx, cookie_atom);
+    }
 
     // document extra stubs
     JS_SetPropertyStr(ctx, document, "readyState",
@@ -2250,6 +2556,8 @@ void qjs_run_scripts(QJSEngine *engine, std::shared_ptr<Node> root) {
 
     auto scripts_start = std::chrono::steady_clock::now();
     bool budget_exceeded = false;
+    int external_fetched = 0;
+    static const int MAX_EXTERNAL_SCRIPTS = 6;
 
     std::function<void(std::shared_ptr<Node>)> run;
     run = [&](std::shared_ptr<Node> node) {
@@ -2262,14 +2570,38 @@ void qjs_run_scripts(QJSEngine *engine, std::shared_ptr<Node> root) {
                 budget_exceeded = true;
                 return;
             }
-            // Skip external scripts (src attribute) — we don't fetch them yet
-            if (node->attributes.count("src")) {
-                return;
+            // Only classic JS types (skip module/json/template types)
+            if (node->attributes.count("type")) {
+                std::string t = node->attributes.at("type");
+                std::transform(t.begin(), t.end(), t.begin(), ::tolower);
+                if (t != "" && t != "text/javascript" &&
+                    t != "application/javascript" && t != "module")
+                    return;
             }
             std::string source;
-            for (auto& c : node->children)
-                if (c && c->type == NodeType::Text)
-                    source += c->data;
+            // External scripts: fetch over http(s), same rules as fetch()
+            auto src_it = node->attributes.find("src");
+            if (src_it != node->attributes.end() && !src_it->second.empty()) {
+                if (external_fetched >= MAX_EXTERNAL_SCRIPTS) return;
+                std::string surl = resolve_url(src_it->second, engine->page_url);
+                if (surl.rfind("https://", 0) != 0 &&
+                    surl.rfind("http://", 0) != 0)
+                    return;
+                external_fetched++;
+                HttpResponse r = http_fetch(surl, "GET", "", g_private_mode);
+                if (!r.ok || r.status_code >= 400) {
+                    std::cerr << "[JS] external script fetch failed ("
+                              << r.status_code << "): " << surl << "\n";
+                    return;
+                }
+                std::cerr << "[JS] external script: " << surl << " ("
+                          << r.body.size() / 1024 << " KB)\n";
+                source = std::move(r.body);
+            } else {
+                for (auto& c : node->children)
+                    if (c && c->type == NodeType::Text)
+                        source += c->data;
+            }
             // Skip very large scripts (>256KB) — they're usually framework bundles
             // that depend on APIs we don't have and tend to crash/hang QuickJS.
             // Scripts 4-256KB are logged but run (with 1s timeout each).
@@ -2429,6 +2761,9 @@ void qjs_set_viewport(QJSEngine *engine, int width, int height) {
 void qjs_set_page_url(QJSEngine *engine, const std::string& url) {
     if (!engine) return;
     engine->page_url = url;
+    // Bind persistent localStorage to this page's origin
+    engine->storage_file = storage_file_for(url);
+    load_local_storage(engine);
     // Update window.location.href
     if (!engine->ctx) return;
     JSValue global = JS_GetGlobalObject(engine->ctx);

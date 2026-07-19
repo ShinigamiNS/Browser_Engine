@@ -39,7 +39,7 @@ static bool is_inline_tag(const std::string &tag) {
   static const std::vector<std::string> inline_tags = {
       "span",  "a",     "b",   "strong", "em",     "img",     "input",
       "label", "small", "i",   "u",      "code",   "abbr",    "cite",
-      "q",     "sub",   "sup", "button", "select", "textarea"};
+      "q",     "sub",   "sup", "button", "select", "textarea", "svg"};
 
   for (const auto &t : inline_tags)
     if (t == tag)
@@ -118,8 +118,7 @@ void LayoutBox::layout(Dimensions containing_block) {
   if (is_inline) {
     // Inline elements: width shrinks to content, position set by parent's flow
     // For img: use width/height attributes, then style, then default
-    if (style_node->node && style_node->node->type == NodeType::Element &&
-        style_node->node->data == "img") {
+    if (style_node->node && is_image_element(*style_node->node)) {
       float iw = 0, ih = 0;
       auto &attrs = style_node->node->attributes;
       // HTML width/height attributes as base values
@@ -835,26 +834,113 @@ void LayoutBox::layout(Dimensions containing_block) {
     if (style.count("row-gap"))
       row_gap = parse_px(style.at("row-gap"), dimensions.content.height);
 
-    float cursor_x = dimensions.content.x;
+    // Horizontal alignment of items within their cell
+    std::string justify_items =
+        style.count("justify-items") ? style.at("justify-items") : "";
+
+    // x offset of the left edge of a column
+    auto cell_x_of = [&](int col) -> float {
+      float x = dimensions.content.x;
+      for (int i = 0; i < col && i < (int)col_widths.size(); ++i)
+        x += col_widths[i] + col_gap;
+      return x;
+    };
+
+    // Explicit `grid-area: R / C ...` (numeric only). Children placed in
+    // row 1 this way are STACKED at the container top (Google layers the
+    // logo/doodle with grid-area:1/1) instead of consuming flow slots.
+    auto explicit_cell = [](const std::shared_ptr<LayoutBox> &c,
+                            int &row, int &col) -> bool {
+      if (!c->style_node) return false;
+      std::string ga = c->style_node->value("grid-area");
+      if (ga.empty()) return false;
+      int r = 0, cl = 1;
+      if (sscanf(ga.c_str(), "%d / %d", &r, &cl) >= 1 && r > 0) {
+        row = r;
+        col = cl > 0 ? cl : 1;
+        return true;
+      }
+      return false;
+    };
+
     float cursor_y = dimensions.content.y;
     float curr_row_height = 0;
+    float stacked_height = 0; // tallest explicitly-placed row-1 child
     int col_idx = 0;
 
     for (auto &child : children) {
       if (!child)
         continue;
-      float cw = col_widths[col_idx];
+      int ga_row = 0, ga_col = 1;
+      bool placed = explicit_cell(child, ga_row, ga_col) && ga_row == 1;
+      int use_col = placed ? std::min(ga_col - 1, cols - 1) : col_idx;
+      if (use_col < 0) use_col = 0;
+      float cw = col_widths[use_col];
+      float cell_x = cell_x_of(use_col);
+
       Dimensions child_cb = dimensions;
-      child_cb.content.x = cursor_x + (float)col_idx * (cw + col_gap);
+      child_cb.content.x = cell_x;
       child_cb.content.width = cw;
       child_cb.content.height = 0;
       child->layout(child_cb);
-      child->dimensions.content.x =
-          child_cb.content.x + child->dimensions.margin.left;
-      child->dimensions.content.y = cursor_y + child->dimensions.margin.top;
 
-      curr_row_height =
-          std::max(curr_row_height, child->dimensions.margin_box().height);
+      float row_y = placed ? dimensions.content.y : cursor_y;
+      float target_x = cell_x + child->dimensions.margin.left;
+      float child_w = child->dimensions.margin_box().width;
+      if (child_w < cw) {
+        if (justify_items == "center")
+          target_x += (cw - child_w) / 2.f;
+        else if (justify_items == "end" || justify_items == "right")
+          target_x += cw - child_w;
+      }
+      float dx = target_x - child->dimensions.content.x;
+      float dy = (row_y + child->dimensions.margin.top) -
+                 child->dimensions.content.y;
+      child->dimensions.content.x += dx;
+      child->dimensions.content.y += dy;
+      if (dx != 0.f || dy != 0.f)
+        offset_children(child.get(), dx, dy);
+
+      // Auto-width block items stretch to the full cell, so the box-level
+      // centering above is a no-op for them. Center their visual CONTENT
+      // instead: measure the union of descendant boxes and shift.
+      if ((justify_items == "center" || justify_items == "end" ||
+           justify_items == "right") &&
+          child_w >= cw - 1.f && !child->children.empty()) {
+        float min_x = 1e9f, max_x = -1e9f;
+        std::function<void(LayoutBox *)> extent;
+        extent = [&](LayoutBox *b) {
+          for (auto &c : b->children) {
+            if (!c) continue;
+            Rect mb = c->dimensions.margin_box();
+            if (mb.width > 0.5f && mb.height > 0.5f) {
+              min_x = std::min(min_x, mb.x);
+              max_x = std::max(max_x, mb.x + mb.width);
+            }
+            extent(c.get());
+          }
+        };
+        extent(child.get());
+        if (max_x > min_x) {
+          float ext_w = max_x - min_x;
+          if (ext_w < cw - 1.f) {
+            float shift;
+            if (justify_items == "center")
+              shift = (cell_x + (cw - ext_w) / 2.f) - min_x;
+            else
+              shift = (cell_x + cw - ext_w) - min_x;
+            if (shift > 0.5f || shift < -0.5f)
+              offset_children(child.get(), shift, 0.f);
+          }
+        }
+      }
+
+      float ch = child->dimensions.margin_box().height;
+      if (placed) {
+        stacked_height = std::max(stacked_height, ch);
+        continue; // stacked items don't advance the auto-flow cursor
+      }
+      curr_row_height = std::max(curr_row_height, ch);
       col_idx++;
       if (col_idx >= cols) {
         col_idx = 0;
@@ -863,7 +949,8 @@ void LayoutBox::layout(Dimensions containing_block) {
       }
     }
     dimensions.content.height =
-        (cursor_y - dimensions.content.y) + curr_row_height;
+        std::max((cursor_y - dimensions.content.y) + curr_row_height,
+                 stacked_height);
 
   } else if (box_type == BoxType::TableContainer) {
     // ── CSS Table Layout ──────────────────────────────────────────────────
@@ -960,6 +1047,15 @@ void LayoutBox::layout(Dimensions containing_block) {
       }
     };
     collect_rows(children);
+
+    // No table rows at all (e.g. a div given display:table as a layout
+    // trick, or a clearfix)? Fall back to normal block flow so the
+    // children still get laid out.
+    if (rows.empty() && !caption_box) {
+      box_type = BoxType::BlockNode;
+      layout(containing_block);
+      return;
+    }
 
     // Determine number of columns
     int num_cols = 0;
@@ -1352,7 +1448,7 @@ void LayoutBox::calculate_block_width(Dimensions containing_block) {
   float intrinsic_w = 0, intrinsic_h = 0;
   if (style_node->node && style_node->node->type == NodeType::Element) {
     const std::string &tag = style_node->node->data;
-    if (tag == "img" || tag == "video") {
+    if (is_image_element(*style_node->node) || tag == "video") {
       is_replaced = true;
       auto &attrs = style_node->node->attributes;
       // Try HTML width/height attributes first
@@ -1361,7 +1457,7 @@ void LayoutBox::calculate_block_width(Dimensions containing_block) {
       if (attrs.count("height"))
         intrinsic_h = (float)atof(attrs.at("height").c_str());
       // Try cached image dimensions for natural size
-      if (tag == "img" && (intrinsic_w <= 0 || intrinsic_h <= 0)) {
+      if (tag != "video" && (intrinsic_w <= 0 || intrinsic_h <= 0)) {
         std::string src;
         if (attrs.count("src")) src = attrs.at("src");
         if (!src.empty()) {
@@ -1872,9 +1968,9 @@ void LayoutBox::layout_inline_children() {
 
       // Replaced elements (img, video) need full layout() to get intrinsic dimensions
       bool is_replaced_elem = child->style_node && child->style_node->node &&
-          child->style_node->node->type == NodeType::Element &&
-          (child->style_node->node->data == "img" ||
-           child->style_node->node->data == "video");
+          (is_image_element(*child->style_node->node) ||
+           (child->style_node->node->type == NodeType::Element &&
+            child->style_node->node->data == "video"));
       if (is_replaced_elem) {
         // Use parent's containing block so percentage widths resolve properly
         Dimensions img_cb = dimensions;
@@ -1975,14 +2071,14 @@ void LayoutBox::calculate_block_height(float containing_height) {
   // Replaced elements (img, video): use intrinsic height, preserving aspect ratio
   if (style_node->node && style_node->node->type == NodeType::Element) {
     const std::string &tag = style_node->node->data;
-    if (tag == "img" || tag == "video") {
+    if (is_image_element(*style_node->node) || tag == "video") {
       auto &attrs = style_node->node->attributes;
       float attr_w = 0, attr_h = 0;
       if (attrs.count("width")) attr_w = (float)atof(attrs.at("width").c_str());
       if (attrs.count("height")) attr_h = (float)atof(attrs.at("height").c_str());
       // Try cached image for natural dimensions
       float nat_w = 0, nat_h = 0;
-      if (tag == "img") {
+      if (tag != "video") {
         std::string src;
         if (attrs.count("src")) src = attrs.at("src");
         if (!src.empty()) {
@@ -2105,7 +2201,9 @@ static bool has_visible_content(const std::shared_ptr<Node> &node) {
     if (tag == "img" || tag == "video" ||
         tag == "input" || tag == "button" || tag == "textarea" || tag == "select")
       return true;
-    // SVG/canvas are skipped in layout — don't count as visible
+    // Rasterized SVGs (src set) are visible images
+    if (is_image_element(*node)) return true;
+    // Bare SVG/canvas are skipped in layout — don't count as visible
     if (tag == "svg" || tag == "canvas" || tag == "math") return false;
     // Skip hidden children
     if (node->attributes.count("hidden")) return false;
@@ -2166,9 +2264,11 @@ build_layout_tree(std::shared_ptr<StyledNode> style_node) {
         tag == "noscript") {
       return nullptr;
     }
-    // SVG and canvas cannot be rendered by our engine — skip entirely
-    // (keeps the layout clean and avoids phantom boxes for Google's SVG logo)
-    if (tag == "svg" || tag == "canvas" || tag == "math") {
+    // SVG and canvas cannot be rendered by our engine — skip entirely,
+    // EXCEPT for SVGs that were rasterized into the image cache (they carry
+    // a src attribute and render like <img>)
+    if ((tag == "svg" && !is_image_element(*style_node->node)) ||
+        tag == "canvas" || tag == "math") {
       return nullptr;
     }
     // input[type=hidden] — never visible, never takes space

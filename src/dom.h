@@ -75,6 +75,16 @@ private:
   std::map<std::string, std::vector<EventCallback>> event_listeners;
 };
 
+// True for elements rendered as replaced images: <img>, and <svg> that has
+// been rasterized into the image cache (its "src" attribute holds the cache
+// key). Rasterized SVGs keep their <svg> tag so CSS selectors like
+// `.icon svg { ... }` and `svg { display:none }` still match.
+inline bool is_image_element(const Node &n) {
+  return n.type == NodeType::Element &&
+         (n.data == "img" ||
+          (n.data == "svg" && n.attributes.count("src") > 0));
+}
+
 inline std::shared_ptr<Node> ElementNode(const std::string &name,
                                          const AttrMap &attrs = {}) {
   auto node = std::make_shared<Node>(NodeType::Element, name);
